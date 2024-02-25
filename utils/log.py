@@ -1,4 +1,4 @@
-from config import *
+from .config import *
 
 
 def get_log_path(app_name):
