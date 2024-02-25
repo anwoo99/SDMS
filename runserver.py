@@ -299,6 +299,8 @@ def runserver():
                 
                 for new_app, new_info in new_installed_apps.items():
                     if new_app in CURR_INSTALLED_APPS:
+                        if new_app == "Main":
+                            continue
                         curr_info = CURR_INSTALLED_APPS[new_app]
 
                         if new_info['Running'] != curr_info["Running"]:
