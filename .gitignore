@@ -1,2 +1,4 @@
 settings.py
 log
+tmp
+*__pycache__*
