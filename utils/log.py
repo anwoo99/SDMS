@@ -1,33 +1,40 @@
 from config import *
 
-def log(app_name, level, content):
-    if app_name is None:
-        print(content)
-        return
 
-    if LOG_LEVEL_MAP[level] < LOG_LEVEL_MAP[INSTALLED_APPS[app_name]["LOG_LEVEL"]]:
+def get_log_path(app_name):
+    now = datetime.now()
+    weekday = (now.weekday() + 1) % 7
+    return os.path.join(LOG_DIR, f"{app_name}-{weekday}.log")
+
+def should_log(app_name, level):
+    if app_name is None:
+        return True
+
+    try:
+        log_level = LOG_LEVEL_MAP[INSTALLED_APPS[app_name]["LOG_LEVEL"]]
+    except KeyError:
+        return app_name == "Main"
+
+    return LOG_LEVEL_MAP[level] >= log_level
+
+def log(app_name, level, content):
+    if not should_log(app_name, level):
         return
 
     caller = inspect.currentframe().f_back
     caller_function = inspect.getframeinfo(caller).function
-    now = datetime.now()
-    yday = now.timetuple().tm_yday
-    weekday = (now.weekday() + 1) % 7
-    log_path = "{}/{}-{}.log".format(LOG_DIR, app_name, weekday)
-    date_head = now.strftime("%m/%d %H:%M:%S")
+    log_path = get_log_path(app_name)
+    date_head = datetime.now().strftime("%m/%d %H:%M:%S")
 
     try:
         modified_time = time.localtime(os.path.getmtime(log_path))
         modified_yday = modified_time.tm_yday
-    except:
+    except FileNotFoundError:
         modified_yday = -1
 
-    mode = 'a+'
+    mode = 'a+' if datetime.now().timetuple().tm_yday == modified_yday else 'w+'
 
-    if yday != modified_yday:
-        mode = 'w+'
-
-    logmsg = "[{}] [{}] {}\n".format(date_head, caller_function, content)
+    logmsg = f"[{date_head}] [{caller_function}] {content}\n"
 
     with open(log_path, mode) as fd:
         fd.write(logmsg)
