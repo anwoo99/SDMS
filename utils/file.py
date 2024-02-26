@@ -6,8 +6,6 @@ def read_json_file(file_path):
             data = json.load(file)
             return data
     except FileNotFoundError:
-        print(f"Error: File not found at {file_path}")
-        return None
+        raise Exception(f"Error: File not found at {file_path}")
     except json.JSONDecodeError:
-        print(f"Error: Failed to decode JSON from {file_path}")
-        return None
+        raise Exception(f"Error: Failed to decode JSON from {file_path}")

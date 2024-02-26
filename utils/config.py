@@ -24,8 +24,6 @@ from settings import (
     MUST, ERROR, PROGRESS, DEBUG
 )
 
-from .log import log
-
 # Socket Max Buffer Size
 MAX_BUFFER_SIZE = 1024 * 1024 * 16
 
