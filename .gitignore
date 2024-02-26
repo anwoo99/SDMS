@@ -1,5 +1,3 @@
-settings.py
-config
 log
 tmp
 *__pycache__*

@@ -1,0 +1,100 @@
+[
+    {
+        "config": {
+            "Running": 1,
+            "uuid": 1,
+            "name": "OPRA",
+            "remote_hostname": "CME03",
+            "exid": 66,
+            "type": "Option",
+            "desc": "IDC OPRA Options",
+            "timezone": "CST6CDT",
+            "wday": "Mon-Fri",
+            "batch": "0030,0100,0600,0700"
+        },
+        "recv": [
+            {
+                "uuid": 1,
+                "Running": 1,
+                "nic": "p2p2",
+                "ponm": "PRA-MAST",
+                "ip": "237.10.20.21",
+                "port": "58000",
+                "desc": "IDC/OPRA MAST",
+                "type": "M",
+                "format": "old"
+            },
+            {
+                "uuid": 2,
+                "Running": 1,
+                "nic": "p2p2",
+                "ponm": "PRA-SETP",
+                "ip": "237.10.20.21",
+                "port": "58001",
+                "desc": "IDC/OPRA SETP",
+                "type": "S",
+                "format": "old"
+            },
+            {
+                "uuid": 3,
+                "Running": 1,
+                "nic": "p2p2",
+                "ponm": "PRA-CH21_01",
+                "ip": "237.10.20.21",
+                "port": "58002",
+                "desc": "IDC/OPRA CH21_01",
+                "type": "T",
+                "format": "old"
+            }
+        ]
+    },
+    {
+        "config": {
+            "Running": 1,
+            "uuid": 2,
+            "name": "OPR3",
+            "remote_hostname": "CME03",
+            "exid": 75,
+            "type": "Option",
+            "desc": "IDC OPRA Options for KIWOOM",
+            "timezone": "CST6CDT",
+            "wday": "Mon-Fri",
+            "batch": "0600,0700"
+        },
+        "recv": [
+            {
+                "uuid": 1,
+                "Running": 1,
+                "nic": "p2p2",
+                "ponm": "PR3-MAST",
+                "ip": "237.10.20.23",
+                "port": "58300",
+                "desc": "IDC/OPR3 MAST",
+                "type": "M",
+                "format": "old"
+            },
+            {
+                "uuid": 2,
+                "Running": 1,
+                "nic": "p2p2",
+                "ponm": "PR3-SETP",
+                "ip": "237.10.20.23",
+                "port": "58301",
+                "desc": "IDC/OPR3 SETP",
+                "type": "S",
+                "format": "old"
+            },
+            {
+                "uuid": 3,
+                "Running": 1,
+                "nic": "p2p2",
+                "ponm": "PR3-01",
+                "ip": "237.10.20.23",
+                "port": "58302",
+                "desc": "IDC/OPR3 01 SESSION",
+                "type": "T",
+                "format": "old"
+            }
+        ]
+    }
+]
