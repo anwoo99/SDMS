@@ -1,17 +1,18 @@
 from .config import *
+from .log import log
+
 
 class MulticastReceiver:
-    def __init__(self, app_name, uuid, port_name, interface, 
-                 group, port, desc, type, format, buffer_size=MAX_BUFFER_SIZE):
+    def __init__(self, app_name, exch_config, recv_config, buffer_size=MAX_BUFFER_SIZE):
         self.app_name = app_name
-        self.uuid = uuid
-        self.port_name = port_name
-        self.interface = self.get_interface_address(interface)
-        self.group = group
-        self.port = port
-        self.desc = desc
-        self.type = type
-        self.format = format
+        self.uuid = exch_config["uuid"]
+        self.port_name = recv_config["port_name"]
+        self.interface = self.get_interface_address(recv_config["interface"])
+        self.group = recv_config["group"]
+        self.port = recv_config["port"]
+        self.desc = recv_config["desc"]
+        self.type = recv_config["type"]
+        self.format = recv_config["format"]
         self.buffer_size = buffer_size
         self.socket = self.create_multicast_socket()
 
@@ -27,34 +28,120 @@ class MulticastReceiver:
             return ip_address
 
         except Exception as err:
-            log(self.app_name, ERROR, f"Error getting IP address for {interface}: {err}")
+            log(self.app_name, ERROR,
+                f"Error getting IP address for {interface}: {err}")
             return None
 
     # 멀티캐스트 소켓 생성
     def create_multicast_socket(self):
         try:
-            multicast_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-            mreq = struct.pack('4s4s', socket.inet_aton(self.group), socket.inet_aton(self.interface))
-            multicast_socket.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
-            multicast_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            multicast_socket = socket.socket(
+                socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+            mreq = struct.pack('4s4s', socket.inet_aton(
+                self.group), socket.inet_aton(self.interface))
+            multicast_socket.setsockopt(
+                socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+            multicast_socket.setsockopt(
+                socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             multicast_socket.bind(('', self.port))
             return multicast_socket
 
         except Exception as err:
-            log(self.app_name, ERROR, f"Failed to create multicast socket: {err}")
+            log(self.app_name, ERROR,
+                f"Failed to create multicast socket: {err}")
             return None
-    
+
     # 멀티캐스트 데이터 수신
     def receive_data(self):
         try:
             data, addr = self.socket.recvfrom(self.buffer_size)
+            self.write_statistic(data, addr)
             return data, addr
 
         except Exception as err:
             log(self.app_name, ERROR, f"Failed to receive data: {err}")
-            raise  # 예외를 다시 발생시켜 호출자에게 전달
+            raise
 
     # 멀티캐스트 소켓 종료
     def close_socket(self):
         if self.socket:
             self.socket.close()
+
+    def write_statistic(self, data, addr):
+        pass
+
+
+class UnixDomainSocket:
+    def __init__(self, app_name, exch_config, recv_config, flag):
+        self.socket_path = self.create_socket_path(exch_config, recv_config, flag)
+        self.app_name = app_name
+        self.socket = None
+
+    def create_server(self):
+        try:
+            self.socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+
+            # 기존 소켓 파일이 있다면 삭제
+            if os.path.exists(self.socket_path):
+                os.remove(self.socket_path)
+
+            self.socket.bind(self.socket_path)
+            self.socket.listen(1)
+
+            log(self.app_name, MUST, f"Server listening on {self.socket_path}")
+        except Exception as err:
+            log(self.app_name, ERROR, f"Error creating server socket: {err}")
+            raise
+
+    def accept_connection(self):
+        try:
+            connection, client_address = self.socket.accept()
+            log(self.app_name, MUST, f"Accepted connection from {client_address}")
+            return connection
+        except Exception as err:
+            log(self.app_name, ERROR, f"Error accepting connection: {err}")
+            raise
+
+    def create_client(self):
+        try:
+            self.socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            self.socket.connect(self.socket_path)
+            log(self.app_name, MUST, f"Connected to server on {self.socket_path}")
+            return True
+        except ConnectionRefusedError:
+            return False
+        except Exception as err:
+            log(self.app_name, ERROR, f"Error creating client socket: {err}")
+            raise
+
+
+    def send_data(self, data):
+        try:
+            self.socket.sendall(data.encode())
+        except Exception as err:
+            log(self.app_name, ERROR, f"Error sending data: {err}")
+            raise
+
+    def receive_data(self, buffer_size=1024):
+        try:
+            data = self.socket.recv(buffer_size)
+            return data.decode()
+        except Exception as err:
+            log(self.app_name, ERROR, f"Error receiving data: {err}")
+            raise
+
+    def close_socket(self):
+        try:
+            self.socket.close()
+            if os.path.exists(self.socket_path):
+                os.remove(self.socket_path)
+        except Exception as err:
+            log(self.app_name, ERROR, f"Error closing socket: {err}")
+            raise
+    
+    def create_socket_path(self, exch_config, recv_config, flag):
+        try:
+            return f"{self.app_name}_{exch_config["uuid"]}_{recv_config["uuid"]}_{flag}"
+        except Exception as err:
+            log(self.app_name, ERROR, f"Failed to create socket path for '{exch_config["uuid"]}:{recv_config["uuid"]}'")
+            raise
