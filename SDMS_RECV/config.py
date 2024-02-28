@@ -4,6 +4,7 @@ import json
 import multiprocessing
 import time
 import signal
+import traceback
 
 from settings import (
     INSTALLED_APPS,

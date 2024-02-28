@@ -1,4 +1,4 @@
-from .config import *
+from utils.config import *
 
 def text_color(text, color, is_bold = False):
     try:

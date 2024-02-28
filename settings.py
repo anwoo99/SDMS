@@ -37,7 +37,7 @@ RUNNING_MODE = "PROD"
 
 INSTALLED_APPS = {
     'SDMS_RECV': {
-        "Running": False,
+        "Running": True,
         "LOG_LEVEL": PROGRESS
     },
     'SDMS_FEP': {

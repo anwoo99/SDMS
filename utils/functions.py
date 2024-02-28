@@ -1,4 +1,4 @@
-from .config import *
+from utils.config import *
 
 def check_function_signature(function, expected_args):
     signature = inspect.signature(function)

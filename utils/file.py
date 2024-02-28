@@ -1,4 +1,4 @@
-from .config import *
+from utils.config import *
 
 def read_json_file(file_path):
     try:

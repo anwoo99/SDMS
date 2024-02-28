@@ -1,8 +1,8 @@
 # 모듈 가져오기
-from .config import *
-from .file import read_json_file
-from .log import log
-from .functions import check_function_signature
+from utils.config import *
+from utils.file import read_json_file
+from utils.log import log
+from utils.functions import check_function_signature
 
 # 전역 변수: 거래소 프로세스 테이블
 PROC_EXCH_TABLE = []
@@ -70,19 +70,29 @@ def run_exchange_process(app_name, exch_config, recv_config, function):
         process = find_process(exch_config["uuid"], recv_config["uuid"])
 
         if process is None or process["Running"] == 0:
-            proc = multiprocessing.Process(
-                target=function, args=(exch_config, recv_config,), daemon=True) # daemon=True 시 부모프로세스가 종료될 때 자식프로세스도 종료됨
             process = {
                 "Running": 1,
                 "exch_uuid": exch_config["uuid"],
                 "recv_uuid": recv_config["uuid"],
-                "Process": proc
+                "Thread": None
             }
+
+            thread = threading.Thread(
+                target=function, args=(exch_config, recv_config, process), daemon=True)
+            
+            process["Thread"] = thread
             PROC_EXCH_TABLE.append(process)
-            log(app_name, MUST, f"Start to run {function.__name__} for '{exch_config['uuid']}:{recv_config['uuid']}'")
+            thread.start()
+            
+            if not thread.is_alive():
+                log(app_name, ERROR, f"ID[{exch_config['uuid']}:{recv_config['uuid']}] Failed to run '{function.__name__}'")
+                PROC_EXCH_TABLE.remove(process)
+                return
+            
+            log(app_name, MUST, f"ID[{exch_config['uuid']}:{recv_config['uuid']}] Start to run '{function.__name__}'")
     except Exception as err:
         raise Exception(
-            f"Failed to run {function.__name__} for '{exch_config['uuid']}:{recv_config['uuid']}'")
+            f"ID[{exch_config['uuid']}:{recv_config['uuid']}] Failed to run '{function.__name__}'")
 
 
 # 거래소 프로세스 종료 함수
@@ -92,18 +102,23 @@ def kill_exchange_process(app_name, exch_config, recv_config, function):
         process = find_process(exch_config["uuid"], recv_config["uuid"])
 
         if process is not None and process["Running"] == 1:
-            process["Process"].kill()
+            process["Running"] = 0
+
+            # Wait for the thread to finish
+            process["Thread"].join()
+
+            # Remove it from the list
             PROC_EXCH_TABLE.remove(process)
-            log(app_name, MUST, f"Kill {function.__name__} for '{exch_config['uuid']}:{recv_config['uuid']}'")
+            log(app_name, MUST, f"ID[{exch_config['uuid']}:{recv_config['uuid']}] Kill '{function.__name__}'")
     except Exception as err:
         raise Exception(
-            f"Failed to kill {function.__name__} for '{exch_config['uuid']}:{recv_config['uuid']}'")
+            f"ID[{exch_config['uuid']}:{recv_config['uuid']}] Failed to kill '{function.__name__}'")
 
 # 거래소 프로세스 상태 확인 함수
 def check_exchange_process(app_name, function):
     try:
         # 함수 시그니처 검증(반드시 exch_config, recv_config가 인자값으로 있어야 함.)
-        check_function_signature(function, ['exch_config', 'recv_config'])
+        check_function_signature(function, ['exch_config', 'recv_config', 'process'])
 
         while True:
             flag, exch_json_data = validate_exchange_config(app_name)
