@@ -11,36 +11,39 @@ def exit_handler(signal, frame):
         client_sock.close_socket()
     exit(1)
 
-
 def recv_start(exch_config, recv_config, process):
     try:
-        retv = False
         multicast_receiver = MulticastReceiver(
             APP_NAME,
             exch_config,
             recv_config)
+        client_socket = UnixDomainSocket(
+            APP_NAME, 
+            exch_config, 
+            recv_config, 
+            UNIX_FEP_FLAG)
+
+        if multicast_receiver is None:
+            log(APP_NAME, ERROR, 
+                f"ID[{exch_config['uuid']}:{recv_config['uuid']}] Failed to create multicast receiver instance")
+            raise Exception
+    
+        if client_socket is None:
+            log(APP_NAME, ERROR, 
+                f"ID[{exch_config['uuid']}:{recv_config['uuid']}] Failed to create client_socket instance")
+            raise Exception
 
         MULTICAST_RECEIVERS.append(multicast_receiver)
+        CLIENT_SOCKETS.append(client_socket)
         
-        while process["Running"] == 1:
-            if not retv:
-                client_socket = UnixDomainSocket(APP_NAME, exch_config, recv_config, UNIX_FEP_FLAG)
-                retv = client_socket.create_client()
-                
-                if retv:
-                    CLIENT_SOCKETS.append(client_socket)
-                    
+        while process["Running"] == 1:                
             data, addr = multicast_receiver.receive_data()
 
-            if data is None:
+            if data is None or len(data) <= 0:
                 time.sleep(0.001)
                 continue
 
-            if len(data) > 0 and retv:
-                client_socket.send_data(data)
-            else:
-                time.sleep(0.001)
-        
+            client_socket.client_feeder(data)
         raise Exception
     except Exception as err:
         if multicast_receiver in MULTICAST_RECEIVERS:

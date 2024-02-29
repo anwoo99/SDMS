@@ -85,24 +85,33 @@ class MulticastReceiver:
 
 
 class UnixDomainSocket:
-    def __init__(self, app_name, exch_config, recv_config, flag):
+    def __init__(self, app_name, exch_config, recv_config, flag, timeout=10):
         self.app_name = app_name
         self.socket = None
         self.id = f"{exch_config['uuid']}:{recv_config['uuid']}"
         self.socket_path = self.create_socket_path(exch_config, recv_config, flag)
+        self.connect_success = False
+        self.listen_success = False
+        self.timeout = timeout
 
     def create_server(self):
         try:
-            self.socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            if not self.listen_success:
+                self.socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
 
-            # 기존 소켓 파일이 있다면 삭제
-            if os.path.exists(self.socket_path):
-                os.remove(self.socket_path)
+                # 기존 소켓 파일이 있다면 삭제
+                if os.path.exists(self.socket_path):
+                    os.remove(self.socket_path)
 
-            self.socket.bind(self.socket_path)
-            self.socket.listen(1)
+                self.socket.bind(self.socket_path)
+                self.socket.listen(1)
 
-            log(self.app_name, MUST, f"ID[{self.id}] Server listening on {self.socket_path}")
+                # Set a timeout for accept operation
+                self.socket.settimeout(self.timeout)
+
+                log(self.app_name, MUST, f"ID[{self.id}] Server listening on {self.socket_path}")
+                self.listen_success = True
+            return True
         except Exception as err:
             log(self.app_name, ERROR, f"ID[{self.id}] Error creating server socket: {err}")
             raise
@@ -111,20 +120,26 @@ class UnixDomainSocket:
         try:
             connection, client_address = self.socket.accept()
             log(self.app_name, MUST, f"ID[{self.id}] Accepted connection from {client_address}")
-            return connection
+            return connection, client_address
+        except socket.timeout:
+            return None, None
         except Exception as err:
             log(self.app_name, ERROR, f"ID[{self.id}] Error accepting connection: {err}")
             raise SocketError(f"ID[{self.id}] Error creating server socket: {err}")
 
     def create_client(self):
         try:
-            self.socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-            self.socket.connect(self.socket_path)
-            log(self.app_name, MUST, f"ID[{self.id}] Connected to server on {self.socket_path}")
+            if not self.connect_success:
+                self.socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+                self.socket.connect(self.socket_path)
+                log(self.app_name, MUST, f"ID[{self.id}] Connected to server on {self.socket_path}")
+                self.connect_success = True
             return True
         except FileNotFoundError:
+            self.connect_success = False
             return False
         except ConnectionRefusedError:
+            self.connect_success = False
             return False
         except Exception as err:
             log(self.app_name, ERROR, f"ID[{self.id}] Error creating client socket: {err}")
@@ -159,5 +174,32 @@ class UnixDomainSocket:
         try:
             return f"{self.app_name}_{exch_config['uuid']}_{recv_config['uuid']}_{flag}"
         except Exception as err:
-            log(self.app_name, ERROR, f"ID[{self.id}] Failed to create socket path for '{exch_config['uuid']}:{recv_config['uuid']}'")
+            log(self.app_name, ERROR, f"ID[{self.id}] Failed to create socket path")
             raise
+    
+    def client_feeder(self, data):
+        try:
+            retv = self.create_client()
+
+            if retv:
+                self.send_data(data)
+        except Exception as err:
+            log(self.app_name, ERROR, f"ID[{self.id}] Failed to send data through client")
+            raise
+
+    def server_receiver(self):
+        try:
+            retv = self.create_server()
+
+            if retv:
+                retv, address = self.accept_connection()
+
+                if retv:
+                    data = self.receive_data()
+                    return data, address
+                
+            return None, None
+        except Exception as err:
+            log(self.app_name, ERROR, f"ID[{self.id}] Failed to receive through server")
+            raise
+
