@@ -33,7 +33,7 @@ LOG_LEVEL_MAP = {
 # 현재 생성한 앱의 환경 설정
 #############################
 RUNNING_MODE = "PROD"
-#RUNNING_MODE = "TEST"
+# RUNNING_MODE = "TEST"
 
 INSTALLED_APPS = {
     'SDMS_RECV': {
@@ -67,7 +67,7 @@ INSTALLED_APPS = {
 }
 
 #############
-# PATH 설정 
+# PATH 설정
 #############
 # 기본 위치
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -89,4 +89,6 @@ MAIN_PIPE2 = os.path.join(TMP_DIR, "MAIN_PIPE2")
 ##########################
 # Unix Domain Socket Flag
 ##########################
-UNIX_FEP_FLAG = 1
+UNIX_FEP_FLAG = "FEP"
+UNIX_LOG_FLAG = "LOG"
+UNIX_DA_FLAG = "DA"
