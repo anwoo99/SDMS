@@ -22,12 +22,13 @@ import multiprocessing
 import sys
 import traceback
 import threading
+import csv
 
 from settings import (
     INSTALLED_APPS, LOG_LEVEL_MAP,
     LOG_DIR,
     MUST, ERROR, PROGRESS, DEBUG,
-    EXCHANGE_CONFIG_PATH, TMP_DIR,
+    EXCHANGE_CONFIG_PATH, TMP_DIR, CONFIG_DIR,
     UNIX_FEP_FLAG
 )
 
