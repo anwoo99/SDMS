@@ -3,12 +3,20 @@ from SDMS_RECV.config import *
 MULTICAST_RECEIVERS = []
 CLIENT_SOCKETS = []
 
+def socket_close(socklist, sock):
+    if sock in socklist:
+        socklist.remove(sock)
+        sock.close_socket()
+
+def all_socket_close():
+    for sock in MULTICAST_RECEIVERS:
+        socket_close(MULTICAST_RECEIVERS, sock)
+    for sock in CLIENT_SOCKETS:
+        socket_close(CLIENT_SOCKETS, sock)
+
 def exit_handler(signal, frame):
     log(APP_NAME, MUST, "Received termination signal. Closing all of the socket.")
-    for multicast in MULTICAST_RECEIVERS:
-        multicast.close_socket()
-    for client_sock in CLIENT_SOCKETS:
-        client_sock.close_socket()
+    all_socket_close()
     exit(1)
 
 def recv_start(exch_config, recv_config, process):
@@ -46,12 +54,8 @@ def recv_start(exch_config, recv_config, process):
             client_socket.client_feeder(data)
         raise Exception
     except Exception as err:
-        if multicast_receiver in MULTICAST_RECEIVERS:
-            MULTICAST_RECEIVERS.remove(multicast_receiver)
-            multicast_receiver.close_socket()
-        if client_socket in CLIENT_SOCKETS:
-            CLIENT_SOCKETS.remove(client_socket)
-            client_socket.close_socket()
+        socket_close(MULTICAST_RECEIVERS, multicast_receiver)
+        socket_close(CLIENT_SOCKETS, client_socket)
         sys.exit()
 
 def main():
@@ -61,12 +65,8 @@ def main():
 
         check_exchange_process(APP_NAME, recv_start)
 
-    except Exception as err:
-        for multicast in MULTICAST_RECEIVERS:
-            multicast.close_socket()
-        for client_sock in CLIENT_SOCKETS:
-            client_sock.close_socket()
-        
+    except Exception as err:   
+        all_socket_close()
         sys.exit()
 
 if __name__ == "__main__":

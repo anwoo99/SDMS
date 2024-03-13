@@ -4,18 +4,20 @@ SERVER_SOCKETS = []
 LOGGER_SOCKETS = []
 DA_SOCKETS = []
 
+def socket_close(socklist, sock):
+    if sock in socklist:
+        socklist.remove(sock)
+        sock.close_socket()
+
 def all_socket_close():
     for sock in SERVER_SOCKETS:
-        SERVER_SOCKETS.remove(sock)
-        sock.close_socket() 
+        socket_close(SERVER_SOCKETS, sock)
 
     for sock in LOGGER_SOCKETS:
-        LOGGER_SOCKETS.remove(sock)
-        sock.close_socket() 
+        socket_close(LOGGER_SOCKETS, sock)
 
     for sock in DA_SOCKETS:
-        DA_SOCKETS.remove(sock)
-        sock.close_socket() 
+        socket_close(DA_SOCKETS, sock)
 
 def exit_handler(signal, frame):
     log(APP_NAME, MUST, "Received termination signal. Closing all of the socket.")
@@ -60,7 +62,9 @@ def fep_start(exch_config, recv_config, process):
 
         raise Exception
     except Exception as err:
-        all_socket_close()
+        socket_close(SERVER_SOCKETS, server_socket)
+        socket_close(LOGGER_SOCKETS, logger_socket)
+        socket_close(DA_SOCKETS, da_socket)
         sys.exit()
 
 def main():
