@@ -22,7 +22,7 @@ def logger_start(exch_config, recv_config, process):
             recv_config,
             UNIX_LOG_FLAG
         )
-        rawlog = Rawlog(exch_config, recv_config)
+        formatter = Format(APP_NAME, exch_config, recv_config)
 
         if logger_socket is None:
             log(APP_NAME, ERROR, 
@@ -38,7 +38,7 @@ def logger_start(exch_config, recv_config, process):
                 time.sleep(0.001)
                 continue
 
-            rawlog.write_csv(data)
+            formatter.write_csv(data)
         raise Exception
     except Exception as err:
         all_socket_close()

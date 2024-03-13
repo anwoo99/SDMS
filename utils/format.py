@@ -194,6 +194,7 @@ class Format():
         self.formatH = FormatH(app_name, exch_config, recv_config)
         self.formatE = FormatE(app_name, exch_config, recv_config)
         self.parser = FormatBase().parser
+        self.rootpath = self.__get_rootpath()
 
 
     def validation(self, data):
@@ -243,3 +244,67 @@ class Format():
         except Exception as e:
             log(self.app_name, f"Failed to convert data to CSV: {str(e)}")
             return None
+
+    def __create_dir(self, dirname):
+        try:
+            if os.path.exists(dirname):
+                return True
+
+            path_parts = dirname.split(os.path.sep)
+            current_path = ""
+            
+            for part in path_parts:
+                current_path = os.path.join(current_path, part)
+                if not os.path.exists(current_path):
+                    os.makedirs(current_path)
+            return True
+        except Exception as e:
+            print(f"Error creating directory {dirname}: {e}")
+            return False
+
+    def __get_rootpath(self):
+        remote_hostname = self.exch_config['remote_hostname'].lower()
+        exnm = self.exch_config['name'].lower()
+        format = self.recv_config['format'].lower()
+        ponm = self.recv_config['ponm'].lower()
+        dirname = os.path.join(RAW_LOG_DIR, f"{remote_hostname}/{exnm}/{format}/{ponm}")
+        
+        if not self.__create_dir(dirname):
+            return None
+        
+        return dirname
+    
+    def __get_fullpath(self, logclass, data):
+        current_hour = datetime.now().strftime("%H")
+        filename = f"0{current_hour}.csv"
+        
+        # Join the filename with the rootpath and logclass
+        fullpath = os.path.join(self.rootpath, logclass.lower(), filename)
+
+        return fullpath
+    
+    def write_csv(self, data):
+        _, _, logclass = self.classify(data)
+
+        if logclass == 'DEPTH':
+            try:
+                if self.recv_config['depth_log'] == 0:
+                    return
+            except Exception:
+                return
+
+
+        fullpath = self.__get_fullpath(logclass, data)
+        csv_data = self.convert_csv(data)
+
+        try:
+            modified_time = time.localtime(os.path.getmtime(fullpath))
+            modified_yday = modified_time.tm_yday
+        except FileNotFoundError:
+            modified_yday = -1
+
+        mode = 'a+' if datetime.now().timetuple().tm_yday == modified_yday else 'w+'
+        
+        with open(fullpath, mode, newline='', encoding='utf-8') as fd:
+            fd.write(csv_data)
+            fd.write("\n")
