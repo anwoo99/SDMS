@@ -1,8 +1,5 @@
 from utils.config import *
-from utils.format import FormatBase
 
-# Parser
-parser = FormatBase().parser
 
 def formatO_validation(config, class_name):
     """

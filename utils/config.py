@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-
+import socket
 import requests
 import urllib.parse
 import os
@@ -14,7 +14,6 @@ import base64
 import hashlib
 import hmac
 import json
-import socket
 import struct
 import fcntl
 import inspect

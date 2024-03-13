@@ -97,12 +97,15 @@ class UnixDomainSocket:
     def create_server(self):
         try:
             if not self.listen_success:
-                self.socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+		# 기존 소켓 파일이 있다면 삭제
+                try:
+		    os.unlink(socket_path)
+		except OSError:
+    		    if os.path.exists(socket_path):
+        	    raise		
 
-                # 기존 소켓 파일이 있다면 삭제
-                if os.path.exists(self.socket_path):
-                    os.remove(self.socket_path)
 
+                self.socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)                
                 self.socket.bind(self.socket_path)
                 self.socket.listen(1)
 
@@ -111,6 +114,7 @@ class UnixDomainSocket:
 
                 log(self.app_name, MUST, f"ID[{self.id}] Server listening on {self.socket_path}")
                 self.listen_success = True
+                print(self.socket)                
             return True
         except Exception as err:
             log(self.app_name, ERROR, f"ID[{self.id}] Error creating server socket: {err}")
@@ -173,7 +177,7 @@ class UnixDomainSocket:
     
     def create_socket_path(self, exch_config, recv_config, flag):
         try:
-            return f"{self.app_name}_{exch_config['uuid']}_{recv_config['uuid']}_{flag}"
+            return os.path.join(TMP_DIR, f"{self.app_name}_{exch_config['uuid']}_{recv_config['uuid']}_{flag}")
         except Exception as err:
             log(self.app_name, ERROR, f"ID[{self.id}] Failed to create socket path")
             raise

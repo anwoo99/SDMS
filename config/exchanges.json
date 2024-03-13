@@ -26,7 +26,7 @@
             },
             {
                 "uuid": 2,
-                "Running": 1,
+                "Running": 0,
                 "nic": "p2p2",
                 "ponm": "PRA-SETP",
                 "ip": "237.10.20.21",
@@ -37,7 +37,7 @@
             },
             {
                 "uuid": 3,
-                "Running": 1,
+                "Running": 0,
                 "nic": "p2p2",
                 "ponm": "PRA-CH21_01",
                 "ip": "237.10.20.21",
@@ -51,7 +51,7 @@
     },
     {
         "config": {
-            "Running": 1,
+            "Running": 0,
             "uuid": 2,
             "name": "OPR3",
             "remote_hostname": "CME03",

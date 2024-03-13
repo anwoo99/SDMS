@@ -39,8 +39,9 @@ def fep_start(exch_config, recv_config, process):
         server_socket = create_and_append_socket(APP_NAME, exch_config, recv_config, UNIX_FEP_FLAG, SERVER_SOCKETS)
         logger_socket = create_and_append_socket(APP_NAME, exch_config, recv_config, UNIX_LOG_FLAG, LOGGER_SOCKETS)
         da_socket = create_and_append_socket(APP_NAME, exch_config, recv_config, UNIX_DA_FLAG, DA_SOCKETS)
+        
         formatter = Format(APP_NAME, exch_config, recv_config)
-
+        
         while process["Running"] == 1:
             is_valid = False
             data, addr = server_socket.server_receiver()

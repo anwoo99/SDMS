@@ -44,7 +44,7 @@ def recv_start(exch_config, recv_config, process):
         MULTICAST_RECEIVERS.append(multicast_receiver)
         CLIENT_SOCKETS.append(client_socket)
         
-        while process["Running"] == 1:                
+        while process["Running"] == 1:
             data, addr = multicast_receiver.receive_data()
 
             if data is None or len(data) <= 0:
