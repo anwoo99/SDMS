@@ -99,10 +99,10 @@ class UnixDomainSocket:
             if not self.listen_success:
 		# 기존 소켓 파일이 있다면 삭제
                 try:
-		    os.unlink(socket_path)
-		except OSError:
-    		    if os.path.exists(socket_path):
-        	    raise		
+                    os.unlink(self.socket_path)
+                except OSError:
+                    if os.path.exists(self.socket_path):
+                        raise		
 
 
                 self.socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)                
