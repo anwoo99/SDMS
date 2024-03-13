@@ -163,9 +163,10 @@ class UnixDomainSocket:
 
     def close_socket(self):
         try:
-            self.socket.close()
-            if os.path.exists(self.socket_path):
-                os.remove(self.socket_path)
+            if self.socket:
+                self.socket.close()
+                if os.path.exists(self.socket_path):
+                    os.remove(self.socket_path)
         except Exception as err:
             log(self.app_name, ERROR, f"ID[{self.id}] Error closing socket: {err}")
             raise
