@@ -44,7 +44,8 @@
                 "port": "58002",
                 "desc": "IDC/OPRA CH21_01",
                 "type": "T",
-                "format": "old"
+                "format": "old",
+                "depth_log": 1
             }
         ]
     },
@@ -93,7 +94,8 @@
                 "port": "58302",
                 "desc": "IDC/OPR3 01 SESSION",
                 "type": "T",
-                "format": "old"
+                "format": "old",
+                "depth_log": 0
             }
         ]
     }

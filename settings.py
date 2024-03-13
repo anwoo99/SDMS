@@ -74,6 +74,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # Log Directory
 LOG_DIR = os.path.join(BASE_DIR, "log")
+RAW_LOG_DIR = os.path.join(LOG_DIR, "raw")
 
 # Config Directory
 CONFIG_DIR = os.path.join(BASE_DIR, "config")

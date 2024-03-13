@@ -4,11 +4,22 @@ SERVER_SOCKETS = []
 LOGGER_SOCKETS = []
 DA_SOCKETS = []
 
+def all_socket_close():
+    for sock in SERVER_SOCKETS:
+        SERVER_SOCKETS.remove(sock)
+        sock.close_socket() 
+
+    for sock in LOGGER_SOCKETS:
+        LOGGER_SOCKETS.remove(sock)
+        sock.close_socket() 
+
+    for sock in DA_SOCKETS:
+        DA_SOCKETS.remove(sock)
+        sock.close_socket() 
+
 def exit_handler(signal, frame):
     log(APP_NAME, MUST, "Received termination signal. Closing all of the socket.")
-
-    for server_sock in SERVER_SOCKETS:
-        server_sock.close_socket()
+    all_socket_close()
     exit(1)   
 
 def create_and_append_socket(app_name, exch_config, recv_config, flag, socket_list):
@@ -37,19 +48,19 @@ def fep_start(exch_config, recv_config, process):
                 continue
             
             # 데이터 Validation
-            is_valid = formatter.validation(data)
+            is_valid, reason = formatter.validation(data)
 
             # 데이터 전송 to processes
-            logger_socket.client_feeder(data)
+            logger_socket.server_feeder(data)
 
             if is_valid:
-                da_socket.client_feeder(data)
+                da_socket.server_feeder(data)
+            else:
+                pass # 에러 사항 Alert
 
         raise Exception
     except Exception as err:
-        if server_socket in SERVER_SOCKETS:
-            SERVER_SOCKETS.remove(server_socket)
-            server_socket.close_socket()
+        all_socket_close()
         sys.exit()
 
 def main():

@@ -1,10 +1,14 @@
 from utils.config import *
 from utils.log import log
+from format_valid import (
+    formatH_validation, formatE_validation, formatO_validation
+)
+
 
 
 def get_config(dir, file):
     field_info = {}
-    path = os.path.join(dir, file, '.csv')
+    path = os.path.join(dir, file + '.csv')
 
     with open(path, newline='', encoding='utf-8') as csvfile:
         config = csv.reader(csvfile)
@@ -12,6 +16,10 @@ def get_config(dir, file):
 
         for row in config:
             field_name, field_length = row[0], int(row[1])
+
+            if field_name in field_info:  # Check if the field_name is already in field_info
+                raise Exception(f"{field_name} is duplicated in '{path}'")
+
             field_info[field_name] = {'length': field_length, 'offset': field_offset}
             field_offset += field_length
 
@@ -46,61 +54,62 @@ class FormatO(FormatBase):
     def classify(self, data):
         if self.exch_name[1:4] == 'LME':
             if self.feed_type == 'M':
-                return self.config['LME_M'], 'LME_M'
+                return self.config['LME_M'], 'OLD_LME_M', 'MASTER'
             if trxc == 'T21':
-                return self.config['LME_QUOTE'], 'LME_TRADE'
+                return self.config['LME_QUOTE'], 'OLD_LME_TRADE', 'QUOTE'
             elif trxc == 'T40':
-                return self.config['LME_QUOTE'], 'LME_SETTLE'
+                return self.config['LME_QUOTE'], 'OLD_LME_SETTLE', 'QUOTE'
             elif trxc == 'T50':
-                return self.config['LME_QUOTE'], 'LME_OINT'
+                return self.config['LME_QUOTE'], 'OLD_LME_OINT', 'QUOTE'
             elif trxc == 'T52':
-                return self.config['LME_QUOTE'], 'LME_MAVG'
+                return self.config['LME_QUOTE'], 'OLD_LME_MAVG', 'QUOTE'
             elif trxc == 'T60':
-                return self.config['LME_QUOTE'], 'LME_OFFI'
+                return self.config['LME_QUOTE'], 'OLD_LME_OFFI', 'QUOTE'
             elif trxc == 'T62':
-                return self.config['LMEWARE_QUOTE'], 'LME_WARE'
+                return self.config['LMEWARE_QUOTE'], 'OLD_LME_WARE', 'QUOTE'
             elif trxc == 'T63':
-                return self.config['LMEWARE_QUOTE'], 'LME_VOLM'
+                return self.config['LMEWARE_QUOTE'], 'OLD_LME_VOLM', 'QUOTE'
             else:
-                return None, None
+                return None, None, None
         else:
             if self.feed_type == 'M':
                 if self.data_type == 'Equity':
-                    return self.config['EQUITY_M'], 'EQUITY_M'
+                    return self.config['EQUITY_M'], 'OLD_EQUITY_M', 'MASTER'
                 elif self.data_type == 'Future':
-                    return self.config['FUTURE_M'], 'FUTURE_M'
+                    return self.config['FUTURE_M'], 'OLD_FUTURE_M', 'MASTER'
                 elif self.data_type == 'Option':
-                    return self.config['OPTION_M'], 'OPTION_M'
+                    return self.config['OPTION_M'], 'OLD_OPTION_M', 'MASTER'
                 elif self.data_type == 'Spread':
-                    return self.config['SPREAD_M'], 'SPREAD_M'
+                    return self.config['SPREAD_M'], 'OLD_SPREAD_M', 'MASTER'
                 else:
-                    return None, None
+                    return None, None, None
             else:
-                trxc = data[0:4]
+                trxc = data[0:3]
 
                 if trxc == 'T60':
-                    return self.config['STATUS'], 'STATUS'
+                    return self.config['STATUS'], 'OLD_STATUS', 'STATUS'
                 elif trxc == 'T21':
-                    return self.config['QUOTE'], 'TRADE'
+                    return self.config['QUOTE'], 'OLD_TRADE', 'QUOTE'
                 elif trxc == 'T24':
-                    return self.config['QUOTE'], 'CANCEL'
+                    return self.config['QUOTE'], 'OLD_CANCEL', 'QUOTE'
                 elif trxc == 'T40':
-                    return self.config['QUOTE'], 'SETTLE'
+                    return self.config['QUOTE'], 'OLD_SETTLE', 'SETTLE'
                 elif trxc == 'T41':
-                    return self.config['QUOTE'], 'CLOSE'
+                    return self.config['QUOTE'], 'OLD_CLOSE', 'CLOSE'
                 elif trxc == 'T50':
-                    return self.config['QUOTE'], 'OINT'
+                    return self.config['QUOTE'], 'OLD_OINT', 'QUOTE'
                 elif trxc == 'T31':
-                    return self.config['DEPTH'], 'DEPTH'
+                    return self.config['DEPTH'], 'OLD_DEPTH', 'DEPTH'
                 elif trxc == 'T80':
-                    return self.config['FND'], 'FND'
+                    return self.config['FND'], 'OLD_FND', 'FND'
                 else:
-                    return None, None
+                    return None, None, None
 
 
     def validation(self, data):
         config, class_name = self.classify(data)
-        return True
+        formatO_validation(config, class_name)
+        return True, None
 
 
 class FormatH():
@@ -110,10 +119,31 @@ class FormatH():
                                                                          'FUTURE_SETTLE', 'OPTION_SETTLE'])
 
     def classify(self, data):
-        pass
+        type = data[0:2]
+
+        if type == "fb":
+            return self.config['FUTURE_M'], 'HANA_FUTURE_M', 'MASTER'
+        elif type == "ob":
+            return self.config['OPTION_M'], 'HANA_OPTION_M', 'MASTER'
+        elif type == "fc":
+            return self.config['FUTURE_QUOTE'], 'HANA_FUTURE_QUOTE', 'QUOTE'
+        elif type == "oc":
+            return self.config['OPTION_QUOTE'], 'HANA_OPTION_QUOTE', 'QUOTE'
+        elif type == 'fh':
+            return self.config['FUTURE_DEPTH'], 'HANA_FUTURE_DEPTH', 'DEPTH'
+        elif type == 'oh':
+            return self.config['OPTION_DEPTH'], 'HANA_OPTION_DEPTH', 'DEPTH'
+        elif type == 'fu':
+            return self.config['FUTURE_SETTLE'], 'HANA_FUTURE_SETTLE', 'SETTLE'
+        elif type == 'ou':
+            return self.config['OPTION_SETTLE'], 'HANA_OPTION_SETTLE', 'SETTLE'
+        else:
+            return None, None, None
+        
 
     def validation(self, data):
-        config, class_name = self.classify(data)
+        config, class_name, _ = self.classify(data)
+        formatH_validation(config, class_name)
         return True
 
 
@@ -124,10 +154,35 @@ class FormatE():
                                                                          'SPREAD_M'])
 
     def classify(self, data):
-        pass
+        if self.feed_type == 'M':
+            if self.data_type == 'Future':
+                return self.config['FUTURE_M'], 'EXT_FUTURE_M', 'MASTER'
+            elif self.data_type == 'Option':
+                return self.config['OPTION_M'], 'EXT_OPTION_M', 'MASTER'
+            elif self.data_type == 'Spread':
+                return self.config['SPREAD_M'], 'EXT_SPREAD_M', 'MASTER'
+            else:
+                return None, None, None
+        else:
+            trxc = data[0:3]
+
+            if trxc == 'T21':
+                return self.config['QUOTE'], 'EXT_TRADE', 'QUOTE'
+            elif trxc == 'T40':
+                return self.config['QUOTE'], 'EXT_SETTLE', 'SETTLE'
+            elif trxc == 'T41':
+                return self.config['QUOTE'], 'EXT_CLOSE', 'CLOSE'
+            elif trxc == 'T50':
+                return self.config['QUOTE'], 'EXT_OINT', 'QUOTE'
+            elif trxc == 'T31':
+                return self.config['DEPTH'], 'EXT_DEPTH', 'DEPTH'
+            else:
+                return None, None, None
+
 
     def validation(self, data):
-        config, class_name = self.classify(data)
+        config, class_name, _ = self.classify(data)
+        formatE_validation(config, class_name)
         return True
 
 class Format():
@@ -138,6 +193,7 @@ class Format():
         self.formatO = FormatO(app_name, exch_config, recv_config)
         self.formatH = FormatH(app_name, exch_config, recv_config)
         self.formatE = FormatE(app_name, exch_config, recv_config)
+        self.parser = FormatBase().parser
 
 
     def validation(self, data):
@@ -174,7 +230,7 @@ class Format():
     def convert_csv(self, data):
         try:
             csv_data = None
-            config, class_name = self.classify(data)
+            config, class_name, _ = self.classify(data)
 
             if config is None:
                 return None

@@ -177,6 +177,17 @@ class UnixDomainSocket:
             log(self.app_name, ERROR, f"ID[{self.id}] Failed to create socket path")
             raise
     
+    def client_receiver(self):
+        try:
+            retv = self.create_client()
+
+            if retv:
+                data = self.receive_data()
+                return data
+        except Exception as err:
+            log(self.app_name, ERROR, f"ID[{self.id}] Failed to send data through client")
+            raise
+
     def client_feeder(self, data):
         try:
             retv = self.create_client()
@@ -200,6 +211,20 @@ class UnixDomainSocket:
                 
             return None, None
         except Exception as err:
-            log(self.app_name, ERROR, f"ID[{self.id}] Failed to receive through server")
+            log(self.app_name, ERROR, f"ID[{self.id}] Failed to receive data through server")
+            raise
+    
+    def server_feeder(self, data):
+        try:
+            retv = self.create_server()
+
+            if retv:
+                retv, address = self.accept_connection()
+
+                if retv:
+                    self.send_data(data)
+            return None, None
+        except Exception as err:
+            log(self.app_name, ERROR, f"ID[{self.id}] Failed to send data through server")
             raise
 
