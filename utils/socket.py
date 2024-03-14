@@ -93,6 +93,7 @@ class UnixDomainSocket:
         self.connect_success = False
         self.listen_success = False
         self.timeout = timeout
+        log(app_name, MUST, f"Create instance for {self.socket_path}")
 
     def create_server(self):
         try:
@@ -114,7 +115,6 @@ class UnixDomainSocket:
 
                 log(self.app_name, MUST, f"ID[{self.id}] Server listening on {self.socket_path}")
                 self.listen_success = True
-                print(self.socket)                
             return True
         except Exception as err:
             log(self.app_name, ERROR, f"ID[{self.id}] Error creating server socket: {err}")
@@ -177,7 +177,7 @@ class UnixDomainSocket:
     
     def create_socket_path(self, exch_config, recv_config, flag):
         try:
-            return os.path.join(TMP_DIR, f"{self.app_name}_{exch_config['uuid']}_{recv_config['uuid']}_{flag}")
+            return os.path.join(TMP_DIR, f"{flag}_{exch_config['uuid']}_{recv_config['uuid']}")
         except Exception as err:
             log(self.app_name, ERROR, f"ID[{self.id}] Failed to create socket path")
             raise
