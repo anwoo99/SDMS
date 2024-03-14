@@ -4,42 +4,38 @@ from utils.format_valid import (
     formatH_validation, formatE_validation, formatO_validation
 )
 
-
-
 def get_config(dir, file):
-    field_info = {} 
+    field_info = {}
     path = os.path.join(dir, file + '.csv')
-   
-    print(path) 
-    try: 
-    	with open(path, newline='', encoding='utf-8') as csvfile:
-    	    config = csv.reader(csvfile) 
-    	    field_offset = 0
 
-    	    for row in config:
-    	    	if not row:
-    		    continue
+    try:
+        with open(path, newline='', encoding='utf-8') as csvfile:
+            config = csv.reader(csvfile)
+            field_offset = 0
 
-    	        field_name, field_length = row[0], int(row[1])
-    	        
-    	        if field_name in field_info:  # Check if the field_name is already in field_info
-    	            raise Exception(f"{field_name} is duplicated in '{path}'")
+            for row in config:
+                if not row:
+                    continue
 
-    	        field_info[field_name] = {'length': field_length, 'offset': field_offset}
-    	        field_offset += field_length
-    	print(path)
-    	return field_info
+                field_name, field_length = row[0], int(row[1])
+
+                if field_name in field_info:  # Check if the field_name is already in field_info
+                    raise Exception(f"{field_name} is duplicated in '{path}'")
+
+                field_info[field_name] = {'length': field_length, 'offset': field_offset}
+                field_offset += field_length
+
+        return field_info
     except Exception as err:
-    	raise
+        raise
 
 
 def get_all_config(dir, filelist):
     try:
-    	config = {file: get_config(dir, file) for file in filelist}
-    	
-    	return config
+        config = {file: get_config(dir, file) for file in filelist}
+        return config
     except Exception:
-    	raise
+        raise
 
 class FormatBase:
     def __init__(self, app_name, exch_config, recv_config, config_path, config_file_list):
