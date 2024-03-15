@@ -66,7 +66,7 @@ class MulticastReceiver:
         try:
             data, addr = self.socket.recvfrom(self.buffer_size)
             self.write_statistic(data, addr)
-            return data, addr
+            return data.decode(), addr
         except socket.timeout:
             return None, None
         except Exception as err:
@@ -173,7 +173,11 @@ class UnixDomainSocket:
             retv = self.create_client()
 
             if retv:
-                data = self.socket.recv(buffer_size)
+                try:
+                    data = self.socket.recv(self.buffer_size)
+                except BrokenPipeError:
+                    return None
+                
                 try:
                     return data.decode()
                 except UnicodeDecodeError:
@@ -192,7 +196,10 @@ class UnixDomainSocket:
                 except AttributeError:
                     encoded_data = data
 
-                self.socket.sendall(encoded_data)
+                try:
+                    self.socket.sendall(encoded_data)
+                except BrokenPipeError:
+                    return
         except Exception as err:
             log(self.app_name, ERROR, f"ID[{self.id}] Failed to send data through client")
             raise
