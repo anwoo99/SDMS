@@ -176,6 +176,7 @@ class UnixDomainSocket:
                 try:
                     data = self.socket.recv(self.buffer_size)
                 except BrokenPipeError:
+                    self.connect_success = False
                     return None
                 
                 try:
@@ -199,6 +200,7 @@ class UnixDomainSocket:
                 try:
                     self.socket.sendall(encoded_data)
                 except BrokenPipeError:
+                    self.connect_success = False
                     return
         except Exception as err:
             log(self.app_name, ERROR, f"ID[{self.id}] Failed to send data through client")
