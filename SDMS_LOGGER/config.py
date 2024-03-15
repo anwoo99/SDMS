@@ -17,7 +17,6 @@ from utils.socket import (
 )
 from utils.exchanges import check_exchange_process
 from utils.format import Format
-from utils.log import Rawlog
 
 APP_NAME = os.path.basename(os.path.dirname(os.path.abspath(__file__)))
 APP_INFO = INSTALLED_APPS[APP_NAME]
