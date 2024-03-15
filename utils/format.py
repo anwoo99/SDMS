@@ -1,8 +1,97 @@
 from utils.config import *
 from utils.log import log
-from utils.format_valid import (
-    formatH_validation, formatE_validation, formatO_validation
-)
+
+def formatO_validation(config, class_name):
+    """
+    필요한 valdiation을 기입하세요. 
+    Return은 반드시 (is_valid(boolean), reason(str)) 으로 작성하세요.
+    """
+    is_valid = True
+    reason = None
+
+    try:
+        if class_name is None or config is None:
+            return False, "Unknown data type"
+        
+        if class_name == "OLD_LME_M":
+            pass
+        elif class_name == 'OLD_LME_TRADE':
+            pass
+        elif class_name == 'OLD_LME_SETTLE':
+            pass
+        elif class_name == 'OLD_LME_OINT':
+            pass
+        elif class_name == 'OLD_LME_MAVG':
+            pass
+        elif class_name == 'OLD_LME_OFFI':
+            pass
+        elif class_name == 'OLD_LME_WARE':
+            pass
+        elif class_name == 'OLD_LME_VOLM':
+            pass
+        elif class_name == 'OLD_EQUITY_M':
+            pass
+        elif class_name == 'OLD_FUTURE_M':
+            pass
+        elif class_name == 'OLD_OPTION_M':
+            pass
+        elif class_name == 'OLD_SPREAD_M':
+            pass
+        elif class_name == 'OLD_STATUS':
+            pass
+        elif class_name == 'OLD_TRADE':
+            pass
+        elif class_name == 'OLD_CANCEL':
+            pass
+        elif class_name == 'OLD_SETTLE':
+            pass
+        elif class_name == 'OLD_CLOSE':
+            pass
+        elif class_name == 'OLD_OINT':
+            pass
+        elif class_name == 'OLD_DEPTH':
+            pass
+        elif class_name == 'OLD_FND':
+            pass
+
+        return is_valid, reason
+    except Exception as err:
+        return False, "Failed to validation for formatO"
+
+
+def formatH_validation(config, class_name):
+    """
+    필요한 valdiation을 기입하세요. 
+    Return은 반드시 (is_valid(boolean), reason(str)) 으로 작성하세요.
+    """
+    is_valid = True
+    reason = None
+
+    try:
+        if class_name is None or config is None:
+            return False, "Unknown data type"
+
+        return is_valid, reason
+    except Exception as err:
+        return False, "Failed to validation for formatH"
+
+
+def formatE_validation(config, class_name):
+    """
+    필요한 valdiation을 기입하세요. 
+    Return은 반드시 (is_valid(boolean), reason(str)) 으로 작성하세요.
+    """
+    is_valid = True
+    reason = None
+
+    try:
+        if class_name is None or config is None:
+            return False, "Unknown data type"
+
+        return is_valid, reason
+    except Exception as err:
+        return False, "Failed to validation for formatE"
+
 
 def get_config(dir, file):
     field_info = {}
@@ -119,9 +208,9 @@ class FormatO(FormatBase):
         return True, None
 
 
-class FormatH():
+class FormatH(FormatBase):
     def __init__(self, app_name, exch_config, recv_config):
-        super().__init__(app_name, exch_config, recv_config, 'formatH', ['FUTURE_M', 'OPTION_M', 'FUTURE_DEPTH',
+        super().__init__(app_name, exch_config, recv_config, 'formatH', ['FUTURE_M', 'OPTION_M', 'FUTURE_DEPTH', 
                                                                          'OPTION_DEPTH', 'FUTURE_QUOTE', 'OPTION_QUOTE',
                                                                          'FUTURE_SETTLE', 'OPTION_SETTLE'])
 
@@ -155,7 +244,7 @@ class FormatH():
 
 
 
-class FormatE():
+class FormatE(FormatBase):
     def __init__(self, app_name, exch_config, recv_config):
         super().__init__(app_name, exch_config, recv_config, 'formatE', ['FUTURE_M', 'OPTION_M', 'DEPTH', 'QUOTE',
                                                                          'SPREAD_M'])
@@ -202,7 +291,7 @@ class Format():
         self.formatH = FormatH(app_name, exch_config, recv_config)
         self.formatE = FormatE(app_name, exch_config, recv_config)        
 
-        self.parser = FormatBase().parser
+        self.parser = FormatBase.parser
         self.rootpath = self.__get_rootpath()
 
 
@@ -260,22 +349,31 @@ class Format():
                 return True
 
             path_parts = dirname.split(os.path.sep)
-            current_path = ""
+            current_path = "/"
             
             for part in path_parts:
+                if not part:
+                    continue
+
                 current_path = os.path.join(current_path, part)
+
                 if not os.path.exists(current_path):
                     os.makedirs(current_path)
-            return True
+
+            if os.path.exists(dirname):
+                return True
+            else:
+                log(self.app_name, ERROR, f"Error creating directory {dirname}")
+                return False
         except Exception as e:
-            print(f"Error creating directory {dirname}: {e}")
+            log(self.app_name, ERROR, f"Error creating directory {dirname}: {e}")
             return False
 
     def __get_rootpath(self):
         remote_hostname = self.exch_config['remote_hostname'].lower()
-        exnm = self.exch_config['name'].lower()
+        exnm = self.exch_config['name']
         format = self.recv_config['format'].lower()
-        ponm = self.recv_config['ponm'].lower()
+        ponm = self.recv_config['ponm']
         dirname = os.path.join(RAW_LOG_DIR, f"{remote_hostname}/{exnm}/{format}/{ponm}")
         
         if not self.__create_dir(dirname):

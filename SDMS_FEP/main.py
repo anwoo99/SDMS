@@ -63,7 +63,9 @@ def fep_start(exch_config, recv_config, process):
 
         raise Exception
     except Exception as err:
-        log(APP_NAME, ERROR, f"ID[{exch_config['uuid']}:{recv_config['uuid']}] process is dead now for '{err}'")
+        traceback_error = traceback.format_exc()
+        log(APP_NAME, ERROR, traceback_error)
+
         socket_close(SERVER_SOCKETS, server_socket)
         socket_close(LOGGER_SOCKETS, logger_socket)
         socket_close(DA_SOCKETS, da_socket)

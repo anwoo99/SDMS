@@ -3,7 +3,12 @@ from utils.config import *
 def get_log_path(app_name):
     now = datetime.now()
     weekday = (now.weekday() + 1) % 7
-    return os.path.join(LOG_DIR, f"{app_name}-{weekday}.log")
+    sys_path = os.path.join(LOG_DIR, "sys")
+
+    if not os.path.exists(sys_path):
+        os.makedirs(sys_path)
+
+    return os.path.join(sys_path, f"{app_name}-{weekday}.log")
 
 def should_log(app_name, level):
     if app_name is None:
