@@ -148,4 +148,4 @@ def check_exchange_process(app_name, function):
                                     app_name, exch_config, recv_config, function)
             time.sleep(1)
     except Exception as err:
-        raise Exception("Failed to check exchange process")
+        raise Exception(f"Failed to check exchange process: {err}")

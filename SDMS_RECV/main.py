@@ -30,7 +30,7 @@ def recv_start(exch_config, recv_config, process):
             exch_config, 
             recv_config, 
             UNIX_FEP_FLAG)
-
+        
         if multicast_receiver is None:
             log(APP_NAME, ERROR, 
                 f"ID[{exch_config['uuid']}:{recv_config['uuid']}] Failed to create multicast receiver instance")
@@ -40,7 +40,7 @@ def recv_start(exch_config, recv_config, process):
             log(APP_NAME, ERROR, 
                 f"ID[{exch_config['uuid']}:{recv_config['uuid']}] Failed to create client_socket instance")
             raise Exception
-
+        
         MULTICAST_RECEIVERS.append(multicast_receiver)
         CLIENT_SOCKETS.append(client_socket)
         
@@ -54,6 +54,9 @@ def recv_start(exch_config, recv_config, process):
             client_socket.client_feeder(data)
         raise Exception
     except Exception as err:
+        traceback_error = traceback.format_exc()
+        log(APP_NAME, ERROR, traceback_error)
+
         socket_close(MULTICAST_RECEIVERS, multicast_receiver)
         socket_close(CLIENT_SOCKETS, client_socket)
         sys.exit()
@@ -66,6 +69,9 @@ def main():
         check_exchange_process(APP_NAME, recv_start)
 
     except Exception as err:   
+        traceback_error = traceback.format_exc()
+        log(APP_NAME, ERROR, traceback_error)
+
         all_socket_close()
         sys.exit()
 

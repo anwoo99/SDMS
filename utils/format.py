@@ -204,8 +204,8 @@ class FormatO(FormatBase):
 
     def validation(self, data):
         config, class_name = self.classify(data)
-        formatO_validation(config, class_name)
-        return True, None
+        is_valid, reason = formatO_validation(config, class_name)
+        return is_valid, reason
 
 
 class FormatH(FormatBase):
@@ -239,8 +239,8 @@ class FormatH(FormatBase):
 
     def validation(self, data):
         config, class_name, _ = self.classify(data)
-        formatH_validation(config, class_name)
-        return True
+        is_valid, reason = formatH_validation(config, class_name)
+        return is_valid, reason
 
 
 
@@ -278,14 +278,15 @@ class FormatE(FormatBase):
 
     def validation(self, data):
         config, class_name, _ = self.classify(data)
-        formatE_validation(config, class_name)
-        return True
+        is_valid, reason = formatE_validation(config, class_name)
+        return is_valid, reason
 
 class Format():
     def __init__(self, app_name, exch_config, recv_config):
         self.app_name, self.exch_config, self.recv_config = app_name, exch_config, recv_config
         self.exch_type, self.recv_type, self.format = exch_config['type'], recv_config['type'], recv_config['format']
         self.is_valid, self.id = False, f"{exch_config['uuid']}:{recv_config['uuid']}"
+        self.reason = None
         
         self.formatO = FormatO(app_name, exch_config, recv_config)
         self.formatH = FormatH(app_name, exch_config, recv_config)
@@ -298,15 +299,14 @@ class Format():
     def validation(self, data):
         try:
             if self.format == "old":
-                self.is_valid = self.formatO.validation(data)
+                self.is_valid, self.reason = self.formatO.validation(data)
             elif self.format == 'hana':
-                self.is_valid = self.formatH.validation(data)
+                self.is_valid, self.reason = self.formatH.validation(data)
             elif self.format == 'ext':
-                self.is_valid = self.formatE.validation(data)
-
-            return self.is_valid
+                self.is_valid, self.reason = self.formatE.validation(data)
+            return self.is_valid, self.reason
         except Exception:
-            return False
+            return False, None
 
 
     def classify(self, data):

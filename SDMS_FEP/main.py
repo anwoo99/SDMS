@@ -44,7 +44,8 @@ def fep_start(exch_config, recv_config, process):
            
         while process["Running"] == 1:
             is_valid = False
-            data, addr = server_socket.server_receiver()
+            data = server_socket.server_receiver()
+            print(data)
 
             if data is None or len(data) <= 0:
                 time.sleep(0.001)

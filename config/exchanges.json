@@ -98,5 +98,56 @@
                 "depth_log": 0
             }
         ]
+    },
+    {
+        "config": {
+            "Running": 1,
+            "uuid": 3,
+            "name": "FSGX",
+            "remote_hostname": "CME21",
+            "exid": 2,
+            "type": "Future",
+            "desc": "IDC SGX Futures",
+            "timezone": "Singapore",
+            "wday": "Mon-Fri",
+            "batch": "0530,0540,0545"
+        },
+        "recv": [
+            {
+                "uuid": 1,
+                "Running": 1,
+                "nic": "p2p2",
+                "ponm": "SGX-MAST",
+                "ip": "237.10.10.20",
+                "port": "42020",
+                "desc": "IDC/SGX MAST",
+                "type": "M",
+                "format": "old"
+            },
+            {
+                "uuid": 2,
+                "Running": 1,
+                "nic": "p2p2",
+                "ponm": "SGX",
+                "ip": "237.10.10.20",
+                "port": "42021",
+                "desc": "IDC/SGX Futures",
+                "type": "T",
+                "format": "old",
+                "depth_log": 1
+            },
+            {
+                "uuid": 3,
+                "Running": 1,
+                "nic": "p2p2",
+                "ponm": "SGX-FX",
+                "ip": "237.10.10.20",
+                "port": "42024",
+                "desc": "IDC/SGX FX",
+                "type": "T",
+                "format": "old",
+                "depth_log": 0
+            }
+        ]
     }
 ]

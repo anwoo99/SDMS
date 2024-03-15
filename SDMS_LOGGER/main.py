@@ -44,6 +44,9 @@ def logger_start(exch_config, recv_config, process):
             formatter.write_csv(data)
         raise Exception
     except Exception as err:
+        traceback_error = traceback.format_exc()
+        log(APP_NAME, ERROR, traceback_error)
+        
         socket_close(LOGGER_SOCKETS, logger_socket)
         sys.exit()
 

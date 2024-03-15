@@ -85,14 +85,16 @@ class MulticastReceiver:
 
 
 class UnixDomainSocket:
-    def __init__(self, app_name, exch_config, recv_config, flag, timeout=10):
+    def __init__(self, app_name, exch_config, recv_config, flag, timeout=10, buffer_size=MAX_BUFFER_SIZE):
         self.app_name = app_name
         self.socket = None
         self.id = f"{exch_config['uuid']}:{recv_config['uuid']}"
         self.socket_path = self.create_socket_path(exch_config, recv_config, flag)
+        self.connection = 0
         self.connect_success = False
         self.listen_success = False
         self.timeout = timeout
+        self.buffer_size = buffer_size
         log(app_name, MUST, f"Create instance for {self.socket_path}")
 
     def create_server(self):
@@ -110,9 +112,6 @@ class UnixDomainSocket:
                 self.socket.bind(self.socket_path)
                 self.socket.listen(1)
 
-                # Set a timeout for accept operation
-                self.socket.settimeout(self.timeout)
-
                 log(self.app_name, MUST, f"ID[{self.id}] Server listening on {self.socket_path}")
                 self.listen_success = True
             return True
@@ -122,9 +121,11 @@ class UnixDomainSocket:
 
     def accept_connection(self):
         try:
-            connection, client_address = self.socket.accept()
-            log(self.app_name, MUST, f"ID[{self.id}] Accepted connection from {client_address}")
-            return connection, client_address
+            if not self.connect_success:
+                self.connection, client_address = self.socket.accept()
+                log(self.app_name, MUST, f"ID[{self.id}] Accepted connection from {client_address}")
+                self.connect_success = True
+            return True
         except socket.timeout:
             return None, None
         except Exception as err:
@@ -150,21 +151,6 @@ class UnixDomainSocket:
             raise SocketError(f"ID[{self.id}] Error creating client socket: {err}")
 
 
-    def send_data(self, data):
-        try:
-            self.socket.sendall(data.encode())
-        except Exception as err:
-            log(self.app_name, ERROR, f"ID[{self.id}] Error sending data: {err}")
-            raise
-
-    def receive_data(self, buffer_size=1024):
-        try:
-            data = self.socket.recv(buffer_size)
-            return data.decode()
-        except Exception as err:
-            log(self.app_name, ERROR, f"ID[{self.id}] Error receiving data: {err}")
-            raise
-
     def close_socket(self):
         try:
             if self.socket:
@@ -187,8 +173,11 @@ class UnixDomainSocket:
             retv = self.create_client()
 
             if retv:
-                data = self.receive_data()
-                return data
+                data = self.socket.recv(buffer_size)
+                try:
+                    return data.decode()
+                except UnicodeDecodeError:
+                    return data
         except Exception as err:
             log(self.app_name, ERROR, f"ID[{self.id}] Failed to send data through client")
             raise
@@ -198,7 +187,12 @@ class UnixDomainSocket:
             retv = self.create_client()
 
             if retv:
-                self.send_data(data)
+                try:
+                    encoded_data = data.encode()
+                except AttributeError:
+                    encoded_data = data
+
+                self.socket.sendall(encoded_data)
         except Exception as err:
             log(self.app_name, ERROR, f"ID[{self.id}] Failed to send data through client")
             raise
@@ -208,13 +202,15 @@ class UnixDomainSocket:
             retv = self.create_server()
 
             if retv:
-                retv, address = self.accept_connection()
+                retv = self.accept_connection()
 
                 if retv:
-                    data = self.receive_data()
-                    return data, address
-                
-            return None, None
+                    data = self.connection.recv(self.buffer_size)
+                    try:
+                        return data.decode()
+                    except UnicodeDecodeError:
+                        return data
+            return None
         except Exception as err:
             log(self.app_name, ERROR, f"ID[{self.id}] Failed to receive data through server")
             raise
@@ -224,11 +220,14 @@ class UnixDomainSocket:
             retv = self.create_server()
 
             if retv:
-                retv, address = self.accept_connection()
+                retv = self.accept_connection()
 
                 if retv:
-                    self.send_data(data)
-            return None, None
+                    try:
+                        encoded_data = data.encode()
+                    except AttributeError:
+                        encoded_data = data
+                    self.connection.sendall(encoded_data)
         except Exception as err:
             log(self.app_name, ERROR, f"ID[{self.id}] Failed to send data through server")
             raise
