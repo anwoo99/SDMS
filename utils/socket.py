@@ -111,7 +111,7 @@ class UnixDomainSocket:
                 self.socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)                
                 self.socket.bind(self.socket_path)
                 self.socket.listen(1)
-
+                self.socket.settimeout(self.timeout)
                 log(self.app_name, MUST, f"ID[{self.id}] Server listening on {self.socket_path}")
                 self.listen_success = True
             return True
@@ -155,8 +155,6 @@ class UnixDomainSocket:
         try:
             if self.socket:
                 self.socket.close()
-                if os.path.exists(self.socket_path):
-                    os.remove(self.socket_path)
         except Exception as err:
             log(self.app_name, ERROR, f"ID[{self.id}] Error closing socket: {err}")
             raise
@@ -171,14 +169,14 @@ class UnixDomainSocket:
     def client_receiver(self):
         try:
             retv = self.create_client()
-
+             
             if retv:
-                try:
-                    data = self.socket.recv(self.buffer_size)
+                try: 
+                    data = self.socket.recv(self.buffer_size) 
                 except BrokenPipeError:
                     self.connect_success = False
                     return None
-                
+                    
                 try:
                     return data.decode()
                 except UnicodeDecodeError:
@@ -211,10 +209,17 @@ class UnixDomainSocket:
             retv = self.create_server()
 
             if retv:
-                retv = self.accept_connection()
+                try:
+                    retv = self.accept_connection()
+                except self.socket.timeout:
+                    return None
 
                 if retv:
-                    data = self.connection.recv(self.buffer_size)
+                    try:
+                        data = self.connection.recv(self.buffer_size)
+                    except Exception:
+                        self.connect_success = False
+                        return None
                     try:
                         return data.decode()
                     except UnicodeDecodeError:
@@ -229,14 +234,22 @@ class UnixDomainSocket:
             retv = self.create_server()
 
             if retv:
-                retv = self.accept_connection()
+                try:
+                    retv = self.accept_connection()
+                except self.socket.timeout:
+                    return
 
                 if retv:
                     try:
                         encoded_data = data.encode()
                     except AttributeError:
                         encoded_data = data
-                    self.connection.sendall(encoded_data)
+                    
+                    try:
+                        self.connection.sendall(encoded_data)
+                    except Exception:
+                        self.connect_success = False
+                        return
         except Exception as err:
             log(self.app_name, ERROR, f"ID[{self.id}] Failed to send data through server")
             raise

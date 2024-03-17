@@ -312,16 +312,13 @@ class Format():
     def classify(self, data):
         try:
             if self.format == "old":
-                config, class_name = self.formatO.classify(data)
+                config, class_name, logclass = self.formatO.classify(data)
             elif self.format == 'hana':
-                config, class_name = self.formatH.classify(data)
+                config, class_name, logclass = self.formatH.classify(data)
             elif self.format == 'ext':
-                config, class_name = self.formatE.classify(data)
-
-            if config is None or class_name is None:
-                return None, None
-
-            return config, class_name
+                config, class_name, logclass = self.formatE.classify(data)
+ 
+            return config, class_name, logclass
         except Exception:
             return None, None
 
@@ -374,11 +371,7 @@ class Format():
         exnm = self.exch_config['name']
         format = self.recv_config['format'].lower()
         ponm = self.recv_config['ponm']
-        dirname = os.path.join(RAW_LOG_DIR, f"{remote_hostname}/{exnm}/{format}/{ponm}")
-        
-        if not self.__create_dir(dirname):
-            return None
-        
+        dirname = os.path.join(RAW_LOG_DIR, f"{remote_hostname}/{exnm}/{format}/{ponm}")        
         return dirname
     
     def __get_fullpath(self, logclass, data):
@@ -386,7 +379,12 @@ class Format():
         filename = f"0{current_hour}.csv"
         
         # Join the filename with the rootpath and logclass
-        fullpath = os.path.join(self.rootpath, logclass.lower(), filename)
+        fulldir = os.path.join(self.rootpath, logclass.lower())
+
+        if not self.__create_dir(fulldir):
+            return None
+       
+        fullpath = os.path.join(fulldir, filename)
 
         return fullpath
     

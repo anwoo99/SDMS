@@ -51,7 +51,7 @@ def recv_start(exch_config, recv_config, process):
                 time.sleep(0.001)
                 continue
 
-            client_socket.client_feeder(data)
+            client_socket.client_feeder(data.replace('\x00', ' '))
         raise Exception
     except Exception as err:
         traceback_error = traceback.format_exc()

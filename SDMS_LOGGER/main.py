@@ -25,6 +25,7 @@ def logger_start(exch_config, recv_config, process):
             recv_config,
             UNIX_LOG_FLAG
         )
+        
         formatter = Format(APP_NAME, exch_config, recv_config)
 
         if logger_socket is None:
@@ -36,7 +37,7 @@ def logger_start(exch_config, recv_config, process):
 
         while process["Running"] == 1:
             data = logger_socket.client_receiver()
-
+             
             if data is None or len(data) <= 0:
                 time.sleep(0.001)
                 continue

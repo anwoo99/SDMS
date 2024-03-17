@@ -44,19 +44,18 @@ def fep_start(exch_config, recv_config, process):
            
         while process["Running"] == 1:
             is_valid = False
-            data = server_socket.server_receiver()
-            print(data)
+            data = server_socket.server_receiver() 
 
             if data is None or len(data) <= 0:
                 time.sleep(0.001)
                 continue
-            
+             
             # 데이터 Validation
             is_valid, reason = formatter.validation(data)
-
+            
             # 데이터 전송 to processes
             logger_socket.server_feeder(data)
-
+            
             if is_valid:
                 da_socket.server_feeder(data)
             else:

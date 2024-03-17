@@ -41,11 +41,11 @@ INSTALLED_APPS = {
         "LOG_LEVEL": PROGRESS
     },
     'SDMS_FEP': {
-        "Running": False,
+        "Running": True,
         "LOG_LEVEL": PROGRESS
     },
     'SDMS_LOGGER': {
-        "Running": False,
+        "Running": True,
         "LOG_LEVEL": PROGRESS
     },
     'SDMS_DATA_ANALYSIS': {
