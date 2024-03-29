@@ -42,9 +42,6 @@ def log(app_name, level, content):
 
     with open(log_path, mode) as fd:
         fd.write(logmsg)
-
-
-        
         
         
         

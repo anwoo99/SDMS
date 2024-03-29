@@ -43,6 +43,7 @@ def fep_start(exch_config, recv_config, process):
         formatter = Format(APP_NAME, exch_config, recv_config)
            
         while process["Running"] == 1:
+            converted_data = None
             is_valid = False
             data = server_socket.server_receiver() 
 
@@ -55,7 +56,7 @@ def fep_start(exch_config, recv_config, process):
             
             # 데이터 전송 to processes
             logger_socket.server_feeder(data)
-            
+
             if is_valid:
                 da_socket.server_feeder(data)
             else:

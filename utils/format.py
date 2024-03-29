@@ -1,97 +1,8 @@
 from utils.config import *
 from utils.log import log
-
-def formatO_validation(config, class_name):
-    """
-    필요한 valdiation을 기입하세요. 
-    Return은 반드시 (is_valid(boolean), reason(str)) 으로 작성하세요.
-    """
-    is_valid = True
-    reason = None
-
-    try:
-        if class_name is None or config is None:
-            return False, "Unknown data type"
-        
-        if class_name == "OLD_LME_M":
-            pass
-        elif class_name == 'OLD_LME_TRADE':
-            pass
-        elif class_name == 'OLD_LME_SETTLE':
-            pass
-        elif class_name == 'OLD_LME_OINT':
-            pass
-        elif class_name == 'OLD_LME_MAVG':
-            pass
-        elif class_name == 'OLD_LME_OFFI':
-            pass
-        elif class_name == 'OLD_LME_WARE':
-            pass
-        elif class_name == 'OLD_LME_VOLM':
-            pass
-        elif class_name == 'OLD_EQUITY_M':
-            pass
-        elif class_name == 'OLD_FUTURE_M':
-            pass
-        elif class_name == 'OLD_OPTION_M':
-            pass
-        elif class_name == 'OLD_SPREAD_M':
-            pass
-        elif class_name == 'OLD_STATUS':
-            pass
-        elif class_name == 'OLD_TRADE':
-            pass
-        elif class_name == 'OLD_CANCEL':
-            pass
-        elif class_name == 'OLD_SETTLE':
-            pass
-        elif class_name == 'OLD_CLOSE':
-            pass
-        elif class_name == 'OLD_OINT':
-            pass
-        elif class_name == 'OLD_DEPTH':
-            pass
-        elif class_name == 'OLD_FND':
-            pass
-
-        return is_valid, reason
-    except Exception as err:
-        return False, "Failed to validation for formatO"
-
-
-def formatH_validation(config, class_name):
-    """
-    필요한 valdiation을 기입하세요. 
-    Return은 반드시 (is_valid(boolean), reason(str)) 으로 작성하세요.
-    """
-    is_valid = True
-    reason = None
-
-    try:
-        if class_name is None or config is None:
-            return False, "Unknown data type"
-
-        return is_valid, reason
-    except Exception as err:
-        return False, "Failed to validation for formatH"
-
-
-def formatE_validation(config, class_name):
-    """
-    필요한 valdiation을 기입하세요. 
-    Return은 반드시 (is_valid(boolean), reason(str)) 으로 작성하세요.
-    """
-    is_valid = True
-    reason = None
-
-    try:
-        if class_name is None or config is None:
-            return False, "Unknown data type"
-
-        return is_valid, reason
-    except Exception as err:
-        return False, "Failed to validation for formatE"
-
+from utils.format_validation import (
+    formatE_validation, formatH_validation, formatO_validation
+)
 
 def get_config(dir, file):
     field_info = {}
@@ -131,16 +42,20 @@ class FormatBase:
         self.id = f"{exch_config['uuid']}:{recv_config['uuid']}"
         self.config_path = os.path.join(CONFIG_DIR, config_path)
         self.config_file_list = config_file_list
-        self.config = get_all_config(self.config_path, self.config_file_list)
+        self.config_list = get_all_config(self.config_path, self.config_file_list)
         self.exch_name, self.data_type, self.feed_type = exch_config['name'], exch_config['type'], recv_config['type']
+        self.is_validation = False
 
     @staticmethod
     def parser(config, data, field_name: str):
         if config is None:
             return None
 
-        start, end = config[field_name]['offset'], config[field_name]['offset'] + config[field_name]['length']
-        return data[start:end]
+        try:
+            start, end = config[field_name]['offset'], config[field_name]['offset'] + config[field_name]['length']
+            return data[start:end]
+        except Exception:
+            return None
 
 class FormatO(FormatBase):
     def __init__(self, app_name, exch_config, recv_config):
@@ -150,63 +65,68 @@ class FormatO(FormatBase):
     def classify(self, data):
         if self.exch_name[1:4] == 'LME':
             if self.feed_type == 'M':
-                return self.config['LME_M'], 'OLD_LME_M', 'MASTER'
+                return self.config_list['LME_M'], 'OLD_LME_M', 'MASTER'
             if trxc == 'T21':
-                return self.config['LME_QUOTE'], 'OLD_LME_TRADE', 'QUOTE'
+                return self.config_list['LME_QUOTE'], 'OLD_LME_TRADE', 'QUOTE'
             elif trxc == 'T40':
-                return self.config['LME_QUOTE'], 'OLD_LME_SETTLE', 'QUOTE'
+                return self.config_list['LME_QUOTE'], 'OLD_LME_SETTLE', 'QUOTE'
             elif trxc == 'T50':
-                return self.config['LME_QUOTE'], 'OLD_LME_OINT', 'QUOTE'
+                return self.config_list['LME_QUOTE'], 'OLD_LME_OINT', 'QUOTE'
             elif trxc == 'T52':
-                return self.config['LME_QUOTE'], 'OLD_LME_MAVG', 'QUOTE'
+                return self.config_list['LME_QUOTE'], 'OLD_LME_MAVG', 'QUOTE'
             elif trxc == 'T60':
-                return self.config['LME_QUOTE'], 'OLD_LME_OFFI', 'QUOTE'
+                return self.config_list['LME_QUOTE'], 'OLD_LME_OFFI', 'QUOTE'
             elif trxc == 'T62':
-                return self.config['LMEWARE_QUOTE'], 'OLD_LME_WARE', 'QUOTE'
+                return self.config_list['LMEWARE_QUOTE'], 'OLD_LME_WARE', 'QUOTE'
             elif trxc == 'T63':
-                return self.config['LMEWARE_QUOTE'], 'OLD_LME_VOLM', 'QUOTE'
+                return self.config_list['LMEWARE_QUOTE'], 'OLD_LME_VOLM', 'QUOTE'
             else:
                 return None, None, None
         else:
             if self.feed_type == 'M':
                 if self.data_type == 'Equity':
-                    return self.config['EQUITY_M'], 'OLD_EQUITY_M', 'MASTER'
+                    return self.config_list['EQUITY_M'], 'OLD_EQUITY_M', 'MASTER'
                 elif self.data_type == 'Future':
-                    return self.config['FUTURE_M'], 'OLD_FUTURE_M', 'MASTER'
+                    return self.config_list['FUTURE_M'], 'OLD_FUTURE_M', 'MASTER'
                 elif self.data_type == 'Option':
-                    return self.config['OPTION_M'], 'OLD_OPTION_M', 'MASTER'
+                    return self.config_list['OPTION_M'], 'OLD_OPTION_M', 'MASTER'
                 elif self.data_type == 'Spread':
-                    return self.config['SPREAD_M'], 'OLD_SPREAD_M', 'MASTER'
+                    return self.config_list['SPREAD_M'], 'OLD_SPREAD_M', 'MASTER'
                 else:
                     return None, None, None
             else:
                 trxc = data[0:3]
 
                 if trxc == 'T60':
-                    return self.config['STATUS'], 'OLD_STATUS', 'STATUS'
+                    return self.config_list['STATUS'], 'OLD_STATUS', 'STATUS'
                 elif trxc == 'T21':
-                    return self.config['QUOTE'], 'OLD_TRADE', 'QUOTE'
+                    return self.config_list['QUOTE'], 'OLD_TRADE', 'QUOTE'
                 elif trxc == 'T24':
-                    return self.config['QUOTE'], 'OLD_CANCEL', 'QUOTE'
+                    return self.config_list['QUOTE'], 'OLD_CANCEL', 'QUOTE'
                 elif trxc == 'T40':
-                    return self.config['QUOTE'], 'OLD_SETTLE', 'SETTLE'
+                    return self.config_list['QUOTE'], 'OLD_SETTLE', 'SETTLE'
                 elif trxc == 'T41':
-                    return self.config['QUOTE'], 'OLD_CLOSE', 'CLOSE'
+                    return self.config_list['QUOTE'], 'OLD_CLOSE', 'CLOSE'
                 elif trxc == 'T50':
-                    return self.config['QUOTE'], 'OLD_OINT', 'QUOTE'
+                    return self.config_list['QUOTE'], 'OLD_OINT', 'QUOTE'
                 elif trxc == 'T31':
-                    return self.config['DEPTH'], 'OLD_DEPTH', 'DEPTH'
+                    return self.config_list['DEPTH'], 'OLD_DEPTH', 'DEPTH'
                 elif trxc == 'T80':
-                    return self.config['FND'], 'OLD_FND', 'FND'
+                    return self.config_list['FND'], 'OLD_FND', 'FND'
                 else:
                     return None, None, None
 
 
     def validation(self, data):
-        config, class_name = self.classify(data)
-        is_valid, reason = formatO_validation(config, class_name)
-        return is_valid, reason
+        config, class_name, _ = self.classify(data)
+        is_valid, reason = formatO_validation(config, class_name, data)
+        
+        if not is_valid:
+            # Error 전송 로직 추가(works, web, device)
+            pass
 
+        return is_valid, reason
+        
 
 class FormatH(FormatBase):
     def __init__(self, app_name, exch_config, recv_config):
@@ -218,28 +138,33 @@ class FormatH(FormatBase):
         type = data[0:2]
 
         if type == "fb":
-            return self.config['FUTURE_M'], 'HANA_FUTURE_M', 'MASTER'
+            return self.config_list['FUTURE_M'], 'HANA_FUTURE_M', 'MASTER'
         elif type == "ob":
-            return self.config['OPTION_M'], 'HANA_OPTION_M', 'MASTER'
+            return self.config_list['OPTION_M'], 'HANA_OPTION_M', 'MASTER'
         elif type == "fc":
-            return self.config['FUTURE_QUOTE'], 'HANA_FUTURE_QUOTE', 'QUOTE'
+            return self.config_list['FUTURE_QUOTE'], 'HANA_FUTURE_QUOTE', 'QUOTE'
         elif type == "oc":
-            return self.config['OPTION_QUOTE'], 'HANA_OPTION_QUOTE', 'QUOTE'
+            return self.config_list['OPTION_QUOTE'], 'HANA_OPTION_QUOTE', 'QUOTE'
         elif type == 'fh':
-            return self.config['FUTURE_DEPTH'], 'HANA_FUTURE_DEPTH', 'DEPTH'
+            return self.config_list['FUTURE_DEPTH'], 'HANA_FUTURE_DEPTH', 'DEPTH'
         elif type == 'oh':
-            return self.config['OPTION_DEPTH'], 'HANA_OPTION_DEPTH', 'DEPTH'
+            return self.config_list['OPTION_DEPTH'], 'HANA_OPTION_DEPTH', 'DEPTH'
         elif type == 'fu':
-            return self.config['FUTURE_SETTLE'], 'HANA_FUTURE_SETTLE', 'SETTLE'
+            return self.config_list['FUTURE_SETTLE'], 'HANA_FUTURE_SETTLE', 'SETTLE'
         elif type == 'ou':
-            return self.config['OPTION_SETTLE'], 'HANA_OPTION_SETTLE', 'SETTLE'
+            return self.config_list['OPTION_SETTLE'], 'HANA_OPTION_SETTLE', 'SETTLE'
         else:
             return None, None, None
         
 
     def validation(self, data):
         config, class_name, _ = self.classify(data)
-        is_valid, reason = formatH_validation(config, class_name)
+        is_valid, reason = formatH_validation(config, class_name, data)
+
+        if not is_valid:
+            # Error 전송 로직 추가(works, web, device)
+            pass
+
         return is_valid, reason
 
 
@@ -252,34 +177,40 @@ class FormatE(FormatBase):
     def classify(self, data):
         if self.feed_type == 'M':
             if self.data_type == 'Future':
-                return self.config['FUTURE_M'], 'EXT_FUTURE_M', 'MASTER'
+                return self.config_list['FUTURE_M'], 'EXT_FUTURE_M', 'MASTER'
             elif self.data_type == 'Option':
-                return self.config['OPTION_M'], 'EXT_OPTION_M', 'MASTER'
+                return self.config_list['OPTION_M'], 'EXT_OPTION_M', 'MASTER'
             elif self.data_type == 'Spread':
-                return self.config['SPREAD_M'], 'EXT_SPREAD_M', 'MASTER'
+                return self.config_list['SPREAD_M'], 'EXT_SPREAD_M', 'MASTER'
             else:
                 return None, None, None
         else:
             trxc = data[0:3]
 
             if trxc == 'T21':
-                return self.config['QUOTE'], 'EXT_TRADE', 'QUOTE'
+                return self.config_list['QUOTE'], 'EXT_TRADE', 'QUOTE'
             elif trxc == 'T40':
-                return self.config['QUOTE'], 'EXT_SETTLE', 'SETTLE'
+                return self.config_list['QUOTE'], 'EXT_SETTLE', 'SETTLE'
             elif trxc == 'T41':
-                return self.config['QUOTE'], 'EXT_CLOSE', 'CLOSE'
+                return self.config_list['QUOTE'], 'EXT_CLOSE', 'CLOSE'
             elif trxc == 'T50':
-                return self.config['QUOTE'], 'EXT_OINT', 'QUOTE'
+                return self.config_list['QUOTE'], 'EXT_OINT', 'QUOTE'
             elif trxc == 'T31':
-                return self.config['DEPTH'], 'EXT_DEPTH', 'DEPTH'
+                return self.config_list['DEPTH'], 'EXT_DEPTH', 'DEPTH'
             else:
                 return None, None, None
 
 
     def validation(self, data):
         config, class_name, _ = self.classify(data)
-        is_valid, reason = formatE_validation(config, class_name)
+        is_valid, reason = formatE_validation(config, class_name, data)
+
+        if not is_valid:
+            # Error 전송 로직 추가(works, web, device)
+            pass
+
         return is_valid, reason
+
 
 class Format():
     def __init__(self, app_name, exch_config, recv_config):
