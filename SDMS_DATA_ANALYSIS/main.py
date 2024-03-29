@@ -16,6 +16,9 @@ def exit_handler(signal, frame):
     all_socket_close()
     exit(1)
 
+def preprocess_receive_checker():
+    pass
+
 def recv_start(exch_config, recv_config, process):
     try:
         da_socket = UnixDomainSocket(
@@ -38,11 +41,21 @@ def recv_start(exch_config, recv_config, process):
                 time.sleep(0.001)
                 continue
 
+            preprocess_receive_checker(exch_config, recv_config, data)
+
         raise Exception
     except Exception as err:
         traceback_error = traceback.format_exc()
         log(APP_NAME, ERROR, traceback_error)
         socket_close(DA_SOCKETS, da_socket)
+        sys.exit()
+
+def receive_checker(exch_config, recv_config, process):
+    try:
+        pass
+    except Exception as err:
+        traceback_error = traceback.format_exc()
+        log(APP_NAME, ERROR, traceback_error)
         sys.exit()
 
 def main():
@@ -51,6 +64,7 @@ def main():
         signal.signal(signal.SIGTERM, exit_handler)
 
         check_exchange_process(APP_NAME, recv_start)
+        check_exchange_process(APP_NAME, receive_checker)
 
     except Exception as err:   
         traceback_error = traceback.format_exc()
