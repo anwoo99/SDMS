@@ -9,7 +9,7 @@ import pickle
 import numpy as np
 from sklearn.ensemble import IsolationForest
 from sklearn.preprocessing import OneHotEncoder
-from sklearn.externals import joblib
+from joblib import dump, load
 
 from settings import (
     INSTALLED_APPS,
