@@ -13,11 +13,28 @@ async def handle_client_connection(app_name, client_socket, logined_sockets):
             fix_data = parse_fix_message(SPLIT_CHAR, data)
             login_id = fix_data[TAG_LOGIN_ID]
             login_pw = fix_data[TAG_LOGIN_PW]
+            login_sucess = False
 
             for login_info in LOGIN_LIST:
                 if login_info["id"] == login_id and login_info["pw"] == login_pw:
                     logined_sockets.add(client_socket)
+                    LOGIN_SUCCESS_DICT = {
+                        str(TAG_LOGIN_ID): login_id,
+                        str(TAG_LOGIN_PW): login_pw,
+                        str(TAG_LOGIN_AUTH): DATA_OK_AUTH
+                    }
+                    LOGIN_SUCCESS_MESSAGE = dict_to_fix(SPLIT_CHAR, LOGIN_SUCCESS_DICT)
+                    await client_socket.sendall(LOGIN_SUCCESS_MESSAGE.encode())
+                    login_sucess = True
                     break
+            if not login_sucess:
+                LOGIN_FAIL_DICT = {
+                        str(TAG_LOGIN_ID): login_id,
+                        str(TAG_LOGIN_PW): login_pw,
+                        str(TAG_LOGIN_AUTH): DATA_NO_AUTH
+                    }
+                LOGIN_FAIL_MESSAGE = dict_to_fix(SPLIT_CHAR, LOGIN_FAIL_DICT)
+                await client_socket.sendall(LOGIN_FAIL_MESSAGE.encode())
 
     except asyncio.TimeoutError:
         pass
