@@ -119,7 +119,6 @@ def load_data_from_file(filename):
         with open(filename, "rb") as f:
             return pickle.load(f)
     else:
-        print(f"File '{filename}' does not exist.")
         return None
 
 def save_data_to_file(data, filename):
