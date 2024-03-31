@@ -50,7 +50,10 @@ INSTALLED_APPS = {
     },
     'SDMS_DATA_ANALYSIS': {
         "Running": False,
-        "LOG_LEVEL": PROGRESS
+        "LOG_LEVEL": PROGRESS,
+        "receive_checker": {
+            "classification": 5
+        }
     },
     'SDMS_HTS': {
         "Running": False,
@@ -62,7 +65,17 @@ INSTALLED_APPS = {
     },
     'SDMS_ALERTER': {
         "Running": False,
-        "LOG_LEVEL": PROGRESS
+        "LOG_LEVEL": PROGRESS,
+        "address": {
+            "ip": "61.78.34.111",
+            "port": 41155
+        },
+        "LOGIN": [
+            {
+                "id": "SDMS_001",
+                "pw": "sdms_001"
+            }
+        ]
     }
 }
 
@@ -83,6 +96,10 @@ EXCHANGE_CONFIG_PATH = os.path.join(CONFIG_DIR, "exchanges.json")
 # TMP Directory
 TMP_DIR = os.path.join(BASE_DIR, "tmp")
 
+# DATA Directory
+DATA_DIR = os.path.join(BASE_DIR, "data")
+DATA_MODEL_DIR = os.path.join(DATA_DIR, "model")
+
 # MAIN PIPE
 MAIN_PIPE = os.path.join(TMP_DIR, "MAIN_PIPE")
 MAIN_PIPE2 = os.path.join(TMP_DIR, "MAIN_PIPE2")
@@ -93,3 +110,17 @@ MAIN_PIPE2 = os.path.join(TMP_DIR, "MAIN_PIPE2")
 UNIX_FEP_FLAG = "FEP"
 UNIX_LOG_FLAG = "LOG"
 UNIX_DA_FLAG = "DA"
+UNIX_ALERTER_FLAG = "ALERTER"
+
+#############
+# ERROR CODE
+#############
+RCV_ERROR_CODE = {
+    "code": "001",
+    "desc": "Receive Error: "
+}
+PRICE_ERROR_CODE = {
+    "code": "002",
+    "desc": "Price Error: "
+}
+

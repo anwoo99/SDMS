@@ -42,6 +42,37 @@ def log(app_name, level, content):
 
     with open(log_path, mode) as fd:
         fd.write(logmsg)
+
+def get_errlog_path(error_code):
+    now = datetime.now()
+    weekday = (now.weekday() + 1) % 7
+    err_path = os.path.join(LOG_DIR, "err")
+
+    if not os.path.exists(err_path):
+        os.makedirs(err_path)
+
+    return os.path.join(err_path, f"{error_code}-{weekday}.log")
+
+def errlog(data):
+    if "error_code" not in data:
+        return
+
+    content = ', '.join([f"{key}: {value}" for key, value in data.items()])
+    log_path = get_errlog_path(data["error_code"])
+    date_head = datetime.now().strftime("%m/%d %H:%M:%S")
+
+    try:
+        modified_time = time.localtime(os.path.getmtime(log_path))
+        modified_yday = modified_time.tm_yday
+    except FileNotFoundError:
+        modified_yday = -1
+
+    mode = 'a+' if datetime.now().timetuple().tm_yday == modified_yday else 'w+'
+
+    logmsg = f"[{date_head}] {content}\n"
+
+    with open(log_path, mode) as fd:
+        fd.write(logmsg)
         
         
         

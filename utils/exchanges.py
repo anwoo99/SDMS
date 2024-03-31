@@ -115,10 +115,10 @@ def kill_exchange_process(app_name, exch_config, recv_config, function):
             f"ID[{exch_config['uuid']}:{recv_config['uuid']}] Failed to kill '{function.__name__}'")
 
 # 거래소 프로세스 상태 확인 함수
-def check_exchange_process(app_name, function):
+def check_exchange_process(app_name, function_list):
     try:
         # 함수 시그니처 검증(반드시 exch_config, recv_config가 인자값으로 있어야 함.)
-        check_function_signature(function, ['exch_config', 'recv_config', 'process'])
+        check_function_signature(function_list, ['exch_config', 'recv_config', 'process'])
 
         while True:
             flag, exch_json_data = validate_exchange_config(app_name)
@@ -141,11 +141,13 @@ def check_exchange_process(app_name, function):
                     elif key == "recv":
                         for recv_config in value:
                             if recv_config["Running"] == 1 and exit_flag == 0:
-                                run_exchange_process(
-                                    app_name, exch_config, recv_config, function)
+                                for function in function_list:
+                                    run_exchange_process(
+                                        app_name, exch_config, recv_config, function)
                             else:
-                                kill_exchange_process(
-                                    app_name, exch_config, recv_config, function)
+                                for function in function_list:
+                                    kill_exchange_process(
+                                        app_name, exch_config, recv_config, function)
             time.sleep(1)
     except Exception as err:
         raise Exception(f"Failed to check exchange process: {err}")

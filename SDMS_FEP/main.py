@@ -77,7 +77,7 @@ def main():
         signal.signal(signal.SIGINT, exit_handler)
         signal.signal(signal.SIGTERM, exit_handler)
 
-        check_exchange_process(APP_NAME, fep_start)
+        check_exchange_process(APP_NAME, [fep_start])
 
     except Exception as err:        
         sys.exit()

@@ -253,4 +253,3 @@ class UnixDomainSocket:
         except Exception as err:
             log(self.app_name, ERROR, f"ID[{self.id}] Failed to send data through server")
             raise
-
