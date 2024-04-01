@@ -99,6 +99,7 @@ TMP_DIR = os.path.join(BASE_DIR, "tmp")
 # DATA Directory
 DATA_DIR = os.path.join(BASE_DIR, "data")
 DATA_MODEL_DIR = os.path.join(DATA_DIR, "model")
+DATA_DICT_DIR = os.path.join(DATA_DIR, "dict")
 
 # MAIN PIPE
 MAIN_PIPE = os.path.join(TMP_DIR, "MAIN_PIPE")

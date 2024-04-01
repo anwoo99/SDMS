@@ -2,16 +2,16 @@ from SDMS_DATA_ANALYSIS.config import *
 
 def rc_get_code(formatter, config, data):
     try:
-        feed_type = formatter.feed_type
+        format = formatter.format
         code = None
 
-        if feed_type == "old" or feed_type == "ext":
+        if format == "old" or format == "ext":
             code = formatter.parser(config, data, "code")
-        elif feed_type == "hana":
+        elif format == "hana":
             code = formatter.parser(config, data, "inst_code")
         else:
             raise
-
+        
         if code is None:
             raise   
         
@@ -84,6 +84,9 @@ def rc_find_mapping(rc_str_map, converted_data, target, is_str2int=1):
     try:
         # 문자열을 정수로 매핑하는 딕셔너리
         if is_str2int:
+            if target not in rc_str_map:
+                rc_str_map[target] = {}
+            
             if converted_data not in rc_str_map[target]:
                 # 새로운 매핑을 생성하여 반환
                 new_mapping = len(rc_str_map[target]) + 1
@@ -102,6 +105,7 @@ def rc_encoding(converted_data_map, rc_str_map):
     try:
         X_real = []
         X_train = []
+        
         for _, converted_data in converted_data_map.items():
             exnm_encoded = rc_find_mapping(rc_str_map, converted_data["exnm"], "exnm", 1)
             code_encoded = rc_find_mapping(rc_str_map, converted_data["code"], "code", 1)
@@ -111,7 +115,7 @@ def rc_encoding(converted_data_map, rc_str_map):
                 X_real.append([exnm_encoded, code_encoded, type_encoded, converted_data["T_class"], converted_data["receive_count"]])
             else:
                 X_train.append([exnm_encoded, code_encoded, type_encoded, converted_data["T_class"], converted_data["receive_count"]])
-        return X_real, X_train
+        return np.array(X_real), np.array(X_train)
     except Exception as err:
         raise
 
@@ -184,48 +188,56 @@ def preprocess_receive_checker(formatter, data, converted_data_map):
         raise
 
 
-def receive_checker(rc_alerter_sock, model_filename, converted_data_map, rc_str_map):
+def receive_checker(process, rc_alerter_sock, model_filename, converted_data_map, rc_str_map):
     try:
-        current_time = time.localtime()
-        curr_T_class = rc_get_T_class(target_time=current_time)
         is_checked = False
 
-        one_minute_before_time = time.localtime(time.mktime(current_time) - 60)
-        before_T_class = rc_get_T_class(target_time=one_minute_before_time)
+        while process["Running"] == 1: 
+            current_time = time.localtime()
+            curr_T_class = rc_get_T_class(target_time=current_time)
+    
+            one_minute_before_time = time.localtime(time.mktime(current_time) - 60)
+            before_T_class = rc_get_T_class(target_time=one_minute_before_time)
+    
+            if before_T_class != curr_T_class:
+                if not is_checked:
+                    if not converted_data_map:
+                        continue
+                        
+                    X_real, X_train = rc_encoding(converted_data_map.get(before_T_class, {}), rc_str_map)
+                    
+                    # Load the receive checker model
+                    if os.path.exists(model_filename):
+                        clf = joblib.load(model_filename)
+                    else:
+                        clf = IsolationForest(contamination=0.1, random_state=42)
 
-        if before_T_class != curr_T_class:
-            if not is_checked:
-                X_real, X_train = rc_encoding(converted_data_map.get(before_T_class, {}), rc_str_map)
-                
-                # Load the receive checker model
-                if os.path.exists(model_filename):
-                    clf = joblib.load(model_filename)
+
+                    if X_train.size > 0:
+                        clf.fit(X_train)
+
+                    if X_real.size > 0:
+                        Y_real = clf.predict(X_real)
+        
+                        for ii, y in enumerate(Y_real):
+                            if y == -1:
+                                rc_anomaly_process(rc_alerter_sock, rc_str_map, X_real[ii])
+        
+                        # After predicting with X_real, retrain the model with non-anomalous data
+                        non_anomalous_indices = np.where(Y_real != -1)[0]  # 이상치로 판별되지 않은 데이터 인덱스
+                        X_real_non_anomalous = X_real[non_anomalous_indices]  # 이상치로 판별되지 않은 데이터만 선택
+        
+                        # 모델 재학습
+                        clf.fit(X_real_non_anomalous)
+    
+                    # Save the updated model
+                    joblib.dump(clf, model_filename)
+                    is_checked = True
                 else:
-                    clf = IsolationForest(contamination=0.1, random_state=42)
-
-                clf.fit(X_train)
-
-                Y_real = clf.predict(X_real)
-
-                for ii, y in enumerate(Y_real):
-                    if y == -1:
-                        rc_anomaly_process(rc_alerter_sock, rc_str_map, X_real[ii])
-
-                # After predicting with X_real, retrain the model with non-anomalous data
-                non_anomalous_indices = np.where(Y_real != -1)[0]  # 이상치로 판별되지 않은 데이터 인덱스
-                X_real_non_anomalous = X_real[non_anomalous_indices]  # 이상치로 판별되지 않은 데이터만 선택
-
-                # 모델 재학습
-                clf.fit(X_real_non_anomalous)
-
-                # Save the updated model
-                joblib.dump(clf, model_filename)
-                is_checked = True
+                    time.sleep(1)
             else:
+                is_checked = False
                 time.sleep(1)
-        else:
-            is_checked = False
-            time.sleep(1)
         
     except Exception as err:
         traceback_error = traceback.format_exc()

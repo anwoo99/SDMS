@@ -215,8 +215,9 @@ class FormatE(FormatBase):
 class Format():
     def __init__(self, app_name, exch_config, recv_config):
         self.app_name, self.exch_config, self.recv_config = app_name, exch_config, recv_config
-        self.exch_type, self.recv_type, self.format = exch_config['type'], recv_config['type'], recv_config['format']
+        self.exch_type, self.feed_type, self.format = exch_config['type'], recv_config['type'], recv_config['format']
         self.is_valid, self.id = False, f"{exch_config['uuid']}:{recv_config['uuid']}"
+        self.exch_name = exch_config['name']
         self.reason = None
         
         self.formatO = FormatO(app_name, exch_config, recv_config)

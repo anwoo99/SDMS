@@ -55,11 +55,11 @@ def validate_exchange_config(app_name):
         raise Exception(f"Failed to validate {EXCHANGE_CONFIG_PATH} file")
 
 # 프로세스 테이블에서 특정 거래소 프로세스 찾기
-def find_process(exch_uuid, recv_uuid):
+def find_process(exch_uuid, recv_uuid, function):
     global PROC_EXCH_TABLE
 
     for process in PROC_EXCH_TABLE:
-        if process["exch_uuid"] == exch_uuid and process["recv_uuid"] == recv_uuid:
+        if process["exch_uuid"] == exch_uuid and process["recv_uuid"] == recv_uuid and process["function"] == function.__name__:
             return process
     return None
 
@@ -67,11 +67,12 @@ def find_process(exch_uuid, recv_uuid):
 def run_exchange_process(app_name, exch_config, recv_config, function):
     try:
         global PROC_EXCH_TABLE
-        process = find_process(exch_config["uuid"], recv_config["uuid"])
+        process = find_process(exch_config["uuid"], recv_config["uuid"], function)
 
         if process is None or process["Running"] == 0:
             process = {
                 "Running": 1,
+                "function": function.__name__,
                 "exch_uuid": exch_config["uuid"],
                 "recv_uuid": recv_config["uuid"],
                 "Thread": None
@@ -99,7 +100,7 @@ def run_exchange_process(app_name, exch_config, recv_config, function):
 def kill_exchange_process(app_name, exch_config, recv_config, function):
     try:
         global PROC_EXCH_TABLE
-        process = find_process(exch_config["uuid"], recv_config["uuid"])
+        process = find_process(exch_config["uuid"], recv_config["uuid"], function)
 
         if process is not None and process["Running"] == 1:
             process["Running"] = 0

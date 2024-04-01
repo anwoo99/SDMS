@@ -9,8 +9,8 @@ ALERTER_SOCKETS = []
 CONVERTED_DATA_MAP_ALL = {}
 RC_STR_MAP_ALL = {}
 
-converted_data_map_all_filename = os.path.join(DATA_MODEL_DIR, "CONVERTED_DATA_MAP_ALL.pickle")
-rc_str_map_all_filename = os.path.join(DATA_MODEL_DIR, "RC_STR_MAP_ALL.pickle")
+converted_data_map_all_filename = os.path.join(DATA_DICT_DIR, "CONVERTED_DATA_MAP_ALL.pickle")
+rc_str_map_all_filename = os.path.join(DATA_DICT_DIR, "RC_STR_MAP_ALL.pickle")
 
 def socket_close(socklist, sock):
     if sock in socklist:
@@ -63,9 +63,8 @@ def recv_checker_start(exch_config, recv_config, process):
             RC_STR_MAP_ALL[formatter.id] = {}
 
         model_filename = os.path.join(DATA_MODEL_DIR, f"RECV_CHK_MODEL_{formatter.id}.pk1")
-
-        while process["Running"] == 1:
-            receive_checker(rc_alerter_sock, model_filename, CONVERTED_DATA_MAP_ALL[formatter.id], RC_STR_MAP_ALL[formatter.id])
+        receive_checker(process, rc_alerter_sock, model_filename, CONVERTED_DATA_MAP_ALL[formatter.id], RC_STR_MAP_ALL[formatter.id])
+            
     except Exception as err:
         traceback_error = traceback.format_exc()
         log(APP_NAME, ERROR, traceback_error)
@@ -95,7 +94,7 @@ def recv_start(exch_config, recv_config, process):
         
         if formatter.id not in CONVERTED_DATA_MAP_ALL:
             CONVERTED_DATA_MAP_ALL[formatter.id] = {}
-
+        
         while process["Running"] == 1:
             data = da_socket.client_receiver()
 

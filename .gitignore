@@ -1,4 +1,5 @@
 log
 tmp
 data
+.ipynb_checkpoints
 *__pycache__*
