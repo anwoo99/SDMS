@@ -223,13 +223,13 @@ def receive_checker(process, rc_alerter_sock, model_filename, converted_data_map
                             if y == -1:
                                 rc_anomaly_process(rc_alerter_sock, rc_str_map, X_real[ii])
         
-                        # After predicting with X_real, retrain the model with non-anomalous data
+                        # X_real 중 이상치가 아닌 데이터는 학습
                         non_anomalous_indices = np.where(Y_real != -1)[0]  # 이상치로 판별되지 않은 데이터 인덱스
                         X_real_non_anomalous = X_real[non_anomalous_indices]  # 이상치로 판별되지 않은 데이터만 선택
         
                         # 모델 재학습
                         clf.fit(X_real_non_anomalous)
-    
+
                     # Save the updated model
                     joblib.dump(clf, model_filename)
                     is_checked = True
