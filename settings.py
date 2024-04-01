@@ -64,7 +64,7 @@ INSTALLED_APPS = {
         "LOG_LEVEL": PROGRESS
     },
     'SDMS_ALERTER': {
-        "Running": False,
+        "Running": True,
         "LOG_LEVEL": PROGRESS,
         "address": {
             "ip": "61.78.34.111",
