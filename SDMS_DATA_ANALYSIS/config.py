@@ -10,6 +10,8 @@ import joblib
 import numpy as np
 from sklearn.ensemble import IsolationForest
 from sklearn.preprocessing import OneHotEncoder
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 from joblib import dump, load
 
 from settings import (
