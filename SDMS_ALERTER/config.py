@@ -9,6 +9,8 @@ import socket
 import select
 import asyncio
 import threading
+import functools
+import queue
 
 from settings import (
     INSTALLED_APPS,
@@ -32,6 +34,7 @@ APP_NAME = os.path.basename(os.path.dirname(os.path.abspath(__file__)))
 APP_INFO = INSTALLED_APPS[APP_NAME]
 LOGIN_LIST = APP_INFO["LOGIN"]
 
+DEVICE_ALERT_SERVER_QUEUE = queue.Queue()
 
 # TAG 정의
 TAG_ERROR_CODE = 1
@@ -45,9 +48,10 @@ TAG_ERROR_MUL_PORT = 8
 TAG_LOGIN_ID = 64
 TAG_LOGIN_PW = 65
 TAG_LOGIN_AUTH = 100
+TAG_TIMEOUT = 1024
 
 # LOGIN ERROR CODE
 DATA_NO_AUTH = -1
 DATA_OK_AUTH = 1
 
-SPLIT_CHAR = "\001"
+SPLIT_CHAR = '\001'

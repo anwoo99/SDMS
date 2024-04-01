@@ -1,8 +1,7 @@
 from SDMS_ALERTER.config import *
-from SDMS_ALERTER.alerter_server import alert_server_start
+from SDMS_ALERTER.device_alerter_server import device_alert_server_start
 
 ALERTER_SOCKETS = []
-LOGINED_SOCKETS = []
 
 def socket_close(socklist, sock):
     if sock in socklist:
@@ -12,9 +11,6 @@ def socket_close(socklist, sock):
 def all_socket_close():
     for sock in ALERTER_SOCKETS:
         socket_close(ALERTER_SOCKETS, sock)
-    for sock in LOGINED_SOCKETS:
-        socket_close(LOGINED_SOCKETS, sock)
-
 
 def exit_handler(signal, frame):
     log(APP_NAME, MUST, "Received termination signal. Closing all of the socket.")
@@ -33,8 +29,7 @@ def create_and_append_socket(app_name, exch_config, recv_config, flag, socket_li
 
 def device_processing(exch_config, recv_config, data):
     try:
-        global LOGINED_SOCKETS
-
+        global DEVICE_ALERT_SERVER_QUEUE
         device_data = {
             str(TAG_ERROR_CODE): data["error_code"],
             str(TAG_ERROR_DESC): data["error_desc"],
@@ -47,16 +42,12 @@ def device_processing(exch_config, recv_config, data):
         }
         fix_data = dict_to_fix(SPLIT_CHAR, device_data)
 
-        for sock in LOGINED_SOCKETS:
-            sock.sendall(fix_data.encode())
-
+        DEVICE_ALERT_SERVER_QUEUE.put(fix_data.encode())
     except Exception as err:
         raise
 
 def alerter_start(exch_config, recv_config, process):
-    try:
-        global LOGINED_SOCKETS
-        
+    try: 
         alerter_socket = create_and_append_socket(APP_NAME, exch_config, recv_config, UNIX_ALERTER_FLAG, ALERTER_SOCKETS)
                    
         while process["Running"] == 1:
@@ -89,14 +80,12 @@ def alerter_start(exch_config, recv_config, process):
 
 def main():
     try:
-        global LOGINED_SOCKETS
-
         signal.signal(signal.SIGINT, exit_handler)
         signal.signal(signal.SIGTERM, exit_handler)
 
         # alert_server_start를 별도의 스레드에서 실행
-        alert_server_thread = threading.Thread(target=asyncio.run, args=(alert_server_start(APP_NAME, LOGINED_SOCKETS),), daemon=True)
-        alert_server_thread.start()
+        device_alert_server_thread = threading.Thread(target=asyncio.run, args=(device_alert_server_start(),), daemon=True)
+        device_alert_server_thread.start()
 
         check_exchange_process(APP_NAME, [alerter_start])
 
