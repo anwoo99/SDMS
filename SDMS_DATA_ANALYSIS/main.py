@@ -124,13 +124,6 @@ def da_start(exch_config, recv_config, process):
         sys.exit()
 
 
-def load_data_from_file(filename):
-    if os.path.exists(filename):
-        with open(filename, "rb") as f:
-            return pickle.load(f)
-    else:
-        return None
-
 def main():
     global CONVERTED_DATA_MAP_ALL
     global RC_DATA_INDEX_MAP

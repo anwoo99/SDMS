@@ -14,3 +14,10 @@ def read_json_file(file_path):
 def dump_data_to_file(data, filename):
     with open(filename, "wb") as f:
         pickle.dump(data, f)
+
+def load_data_from_file(filename):
+    if os.path.exists(filename):
+        with open(filename, "rb") as f:
+            return pickle.load(f)
+    else:
+        return None

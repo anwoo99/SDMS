@@ -121,22 +121,22 @@ def rc_encoding(converted_data_map, rc_data_index_map):
         X_real = np.array(X_real)
         X_train = np.array(X_train)
         
-        # X_train 데이터로 평균과 표준 편차를 계산하여 스케일링
-        if len(X_train) > 0:
-            X_train_scaled = scaler.fit_transform(X_train[:, :-1])  # 마지막 열인 receive_count 제외
-            X_train_scaled = np.column_stack((X_train_scaled, X_train[:, -1]))  # receive_count 추가
-        else:
-            X_train_scaled = []
+        # # X_train 데이터로 평균과 표준 편차를 계산하여 스케일링
+        # if len(X_train) > 0:
+        #     X_train_scaled = scaler.fit_transform(X_train[:, :-1])  # 마지막 열인 receive_count 제외
+        #     X_train_scaled = np.column_stack((X_train_scaled, X_train[:, -1]))  # receive_count 추가
+        # else:
+        #     X_train_scaled = []
         
-        # X_real 데이터를 이전에 계산한 평균과 표준 편차로 스케일링
-        if len(X_real) > 0:
-            X_real_scaled = scaler.transform(X_real[:, :-1])  # 마지막 열인 receive_count 제외
-            X_real_scaled = np.column_stack((X_real_scaled, X_real[:, -1]))  # receive_count 추가
-        else:
-            X_real_scaled = []
+        # # X_real 데이터를 이전에 계산한 평균과 표준 편차로 스케일링
+        # if len(X_real) > 0:
+        #     X_real_scaled = scaler.transform(X_real[:, :-1])  # 마지막 열인 receive_count 제외
+        #     X_real_scaled = np.column_stack((X_real_scaled, X_real[:, -1]))  # receive_count 추가
+        # else:
+        #     X_real_scaled = []
 
-        return X_real_scaled, X_train_scaled, X_real, X_train
-
+        # return np.array(X_real_scaled), np.array(X_train_scaled), X_real, X_train
+        return X_real, X_train
     except Exception as err:
         raise
 
@@ -276,7 +276,7 @@ def receive_checker(process, rc_alerter_sock, model_filename, receive_checker_tr
                     if not converted_data_map:
                         continue
                         
-                    X_real_scaled, X_train_scaled, X_real, X_train = rc_encoding(converted_data_map.get(before_T_class, {}), rc_data_index_map)
+                    X_real, X_train = rc_encoding(converted_data_map.get(before_T_class, {}), rc_data_index_map)
                     
                     # Load the receive checker model
                     if os.path.exists(model_filename):
@@ -284,12 +284,12 @@ def receive_checker(process, rc_alerter_sock, model_filename, receive_checker_tr
                     else:
                         clf = IsolationForest(contamination=0.1, random_state=42)
 
-                    if X_train_scaled.size > 0:
-                        clf.fit(X_train_scaled)
+                    if X_train.size > 0:
+                        clf.fit(X_train)
                         rc_save_data(receive_checker_train_data_filename, X_train)
 
-                    if X_real_scaled.size > 0:
-                        Y_real = clf.predict(X_real_scaled)
+                    if X_real.size > 0:
+                        Y_real = clf.predict(X_real)
         
                         for ii, y in enumerate(Y_real):
                             if y == -1:
