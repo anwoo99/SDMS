@@ -17,7 +17,7 @@ from joblib import dump, load
 from settings import (
     INSTALLED_APPS,
     MUST, ERROR, PROGRESS, DEBUG, 
-    DATA_MODEL_DIR, DATA_DICT_DIR,
+    DATA_MODEL_DIR, DATA_DICT_DIR, DATA_NUMP_DIR,
     UNIX_DA_FLAG, UNIX_ALERTER_FLAG,
     RCV_ERROR_CODE
 )

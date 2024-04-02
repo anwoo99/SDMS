@@ -43,9 +43,19 @@ async def handle_client_connection(reader, writer):
             writer.write(LOGIN_FAIL_MESSAGE.encode())
             await writer.drain()
             return  # 로그인 실패 시 연결 종료
-
+            
+        once = True
+        
         # 로그인 성공한 클라이언트에게만 메시지 전송 처리
         while not writer.transport.is_closing():
+
+            # THIS IS TEST
+            if once:
+                once = False
+                await writer.drain()
+                alert_message = "1=001\0012=recieve_error\0013=20240402173636\0014=HANYANG\0015=SOOSINPORT\0016=111.111.111.111 >\0017=222.222.222.222\0018=4885"
+                writer.write(alert_message.encode())
+                
             await asyncio.sleep(0)  # 다른 task에 제어를 양보하여 비동기적으로 queue를 관찰
             if not DEVICE_ALERT_SERVER_QUEUE.empty():
                 await writer.drain()

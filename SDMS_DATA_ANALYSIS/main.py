@@ -63,7 +63,11 @@ def recv_checker_start(exch_config, recv_config, process):
             RC_STR_MAP_ALL[formatter.id] = {}
 
         model_filename = os.path.join(DATA_MODEL_DIR, f"RECV_CHK_MODEL_{formatter.id}.pk1")
-        receive_checker(process, rc_alerter_sock, model_filename, CONVERTED_DATA_MAP_ALL[formatter.id], RC_STR_MAP_ALL[formatter.id])
+        receive_checker_train_data_filename = os.path.join(DATA_NUMP_DIR, f"receive_checker_train_combined_data_{formatter.id}.npy")
+        receive_checker_anomly_data_filename = os.path.join(DATA_NUMP_DIR, f"receive_checker_anomly_combined_data_{formatter.id}.npy")
+        receive_checker(process, rc_alerter_sock, model_filename, 
+                        receive_checker_train_data_filename, receive_checker_anomly_data_filename, 
+                        CONVERTED_DATA_MAP_ALL[formatter.id], RC_STR_MAP_ALL[formatter.id])
             
     except Exception as err:
         traceback_error = traceback.format_exc()
@@ -73,7 +77,7 @@ def recv_checker_start(exch_config, recv_config, process):
         save_data_to_file(RC_STR_MAP_ALL, rc_str_map_all_filename)
         sys.exit()
 
-def recv_start(exch_config, recv_config, process):
+def da_start(exch_config, recv_config, process):
     try:
         global CONVERTED_DATA_MAP_ALL
 
@@ -135,7 +139,7 @@ def main():
         CONVERTED_DATA_MAP_ALL = load_data_from_file(converted_data_map_all_filename) or {}
         RC_STR_MAP_ALL = load_data_from_file(rc_str_map_all_filename) or {}
 
-        check_exchange_process(APP_NAME, [recv_start, recv_checker_start])
+        check_exchange_process(APP_NAME, [da_start, recv_checker_start])
 
     except Exception as err:
         traceback_error = traceback.format_exc()
