@@ -239,7 +239,6 @@ def receive_checker(process, rc_alerter_sock, model_filename, receive_checker_tr
                     else:
                         clf = IsolationForest(contamination=0.1, random_state=42)
 
-
                     if X_train.size > 0:
                         clf.fit(X_train)
 

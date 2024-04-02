@@ -9,3 +9,8 @@ def read_json_file(file_path):
         raise Exception(f"Error: File not found at {file_path}")
     except json.JSONDecodeError:
         raise Exception(f"Error: Failed to decode JSON from {file_path}")
+
+
+def dump_data_to_file(data, filename):
+    with open(filename, "wb") as f:
+        pickle.dump(data, f)
