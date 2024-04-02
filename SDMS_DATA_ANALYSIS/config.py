@@ -10,7 +10,7 @@ import joblib
 import threading
 import numpy as np
 from sklearn.ensemble import IsolationForest
-from sklearn.preprocessing import OneHotEncoder
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from joblib import dump, load
