@@ -154,6 +154,8 @@ class UnixDomainSocket:
     def close_socket(self):
         try:
             if self.socket:
+                self.connect_success = False
+                self.listen_success = False
                 self.socket.close()
         except Exception as err:
             log(self.app_name, ERROR, f"ID[{self.id}] Error closing socket: {err}")
@@ -217,6 +219,10 @@ class UnixDomainSocket:
                 if retv:
                     try:
                         data = self.connection.recv(self.buffer_size)
+
+                        if not data:
+                            self.connect_success = False
+                            return None
                     except Exception:
                         self.connect_success = False
                         return None

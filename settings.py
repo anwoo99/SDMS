@@ -49,7 +49,7 @@ INSTALLED_APPS = {
         "LOG_LEVEL": PROGRESS
     },
     'SDMS_DATA_ANALYSIS': {
-        "Running": True,
+        "Running": False,
         "LOG_LEVEL": PROGRESS,
         "receive_checker": {
             "classification": 5

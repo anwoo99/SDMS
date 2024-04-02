@@ -19,7 +19,7 @@ def exit_handler(signal, frame):
 
 def create_and_append_socket(app_name, exch_config, recv_config, flag, socket_list):
     try:
-        sock = UnixDomainSocket(app_name, exch_config, recv_config, flag)
+        sock = UnixDomainSocket(app_name, exch_config, recv_config, flag, 1024 * 1024 * 64)
         sock.create_server()
         socket_list.append(sock)
         return sock
@@ -51,11 +51,13 @@ def alerter_start(exch_config, recv_config, process):
         alerter_socket = create_and_append_socket(APP_NAME, exch_config, recv_config, UNIX_ALERTER_FLAG, ALERTER_SOCKETS)
                    
         while process["Running"] == 1:
-            data = alerter_socket.server_receiver() 
+            json_data = alerter_socket.server_receiver()
 
-            if data is None or len(data) <= 0:
+            if json_data is None or len(json_data) <= 0:
                 time.sleep(0.001)
                 continue
+
+            data = json.loads(json_data.rstrip('\0'))
             
             if "error_code" not in data:
                 continue
