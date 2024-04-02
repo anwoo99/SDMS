@@ -123,6 +123,12 @@ def da_start(exch_config, recv_config, process):
         socket_close(DA_SOCKETS, da_socket)
         sys.exit()
 
+def save_data_routine():
+    while(True):
+        dump_data_to_file(CONVERTED_DATA_MAP_ALL, converted_data_map_all_filename)
+        dump_data_to_file(RC_DATA_INDEX_MAP, rc_data_index_map_all_filename)
+        time.sleep(1)
+    sys.exit()
 
 def main():
     global CONVERTED_DATA_MAP_ALL
@@ -134,6 +140,9 @@ def main():
     try:
         CONVERTED_DATA_MAP_ALL = load_data_from_file(converted_data_map_all_filename) or {}
         RC_DATA_INDEX_MAP = load_data_from_file(rc_data_index_map_all_filename) or {}
+
+        save_thread = threading.Thread(target=save_data_routine, daemon=True)
+        save_thread.start()
 
         check_exchange_process(APP_NAME, [da_start, da_checker_start])
 
