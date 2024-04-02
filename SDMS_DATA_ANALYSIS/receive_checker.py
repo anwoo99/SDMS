@@ -119,24 +119,17 @@ def rc_encoding(converted_data_map, rc_str_map):
     except Exception as err:
         raise
 
-def rc_save_data(train_data_filename, anomaly_data_filename, combined_train_data, combined_anomaly_data):
+def rc_save_data(data_filename, data):
     try:
-        if os.path.exists(train_data_filename):
-            existing_train_data = np.load(train_data_filename)
-            all_combined_train_data = np.concatenate((existing_train_data, combined_train_data), axis=0)
+        if os.path.exists(data_filename):
+            existing_data = np.load(data_filename)
+            all_combined_data = np.concatenate((existing_data, data), axis=0)
         else:
-            all_combined_train_data = combined_train_data
+            all_combined_data = data
 
-        if os.path.exists(anomaly_data_filename):
-            existing_anomaly_data = np.load(anomaly_data_filename)
-            all_combined_anomaly_data = np.concatenate((existing_anomaly_data, combined_anomaly_data), axis=0)
-        else:
-            all_combined_anomaly_data = combined_anomaly_data
+        np.save(data_filename, all_combined_data)
         
-        np.save(train_data_filename, all_combined_train_data)
-        np.save(anomaly_data_filename, all_combined_anomaly_data)
-        
-        return all_combined_train_data, all_combined_anomaly_data
+        return all_combined_data
     except Exception as err:
         raise
 
@@ -241,6 +234,7 @@ def receive_checker(process, rc_alerter_sock, model_filename, receive_checker_tr
 
                     if X_train.size > 0:
                         clf.fit(X_train)
+                        rc_save_data(receive_checker_train_data_filename, X_train)
 
                     if X_real.size > 0:
                         Y_real = clf.predict(X_real)
@@ -250,26 +244,19 @@ def receive_checker(process, rc_alerter_sock, model_filename, receive_checker_tr
                                 rc_anomaly_process(rc_alerter_sock, rc_str_map, X_real[ii])
 
                         # 이상치 데이터 저장
-                        anomalous_indices = np.where(Y_real != -1)[0]
-                        combined_anomalous_data = X_real[anomalous_indices]
+                        anomalous_indices = np.where(Y_real == -1)[0]
+                        rc_save_data(receive_checker_anomly_data_filename, X_real[anomalous_indices])
                         
                         # X_real 중 이상치가 아닌 데이터는 학습
                         non_anomalous_indices = np.where(Y_real != -1)[0]  # 이상치로 판별되지 않은 데이터 인덱스
                         X_real_non_anomalous = X_real[non_anomalous_indices]  # 이상치로 판별되지 않은 데이터만 선택
+                        rc_save_data(receive_checker_train_data_filename, X_real_non_anomalous)
         
                         # 모델 재학습
                         clf.fit(X_real_non_anomalous)
 
                     # Save the updated model
                     joblib.dump(clf, model_filename)
-
-                    # Concatenate X_train and X_real_non_anomalous
-                    combined_train_data = np.concatenate((X_train, X_real_non_anomalous), axis=0)
-
-                    # Save the combined data to a separate file
-                    rc_save_data(receive_checker_train_data_filename, receive_checker_anomly_data_filename, 
-                                       combined_train_data, combined_anomalous_data)
-                    
                     is_checked = True
                 else:
                     time.sleep(1)
