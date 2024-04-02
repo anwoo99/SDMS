@@ -127,7 +127,7 @@ def save_data_routine():
     while(True):
         dump_data_to_file(CONVERTED_DATA_MAP_ALL, converted_data_map_all_filename)
         dump_data_to_file(RC_DATA_INDEX_MAP, rc_data_index_map_all_filename)
-        time.sleep(1)
+        time.sleep(30)
     sys.exit()
 
 def main():
