@@ -193,6 +193,29 @@ def rc_anomaly_process(rc_alerter_sock, rc_data_index_map, outlier_data):
     except Exception as err:
         raise
 
+def rc_sleep(current_time, start_day, start_time, end_day, end_time):
+    days = {"Sun": 0, "Mon": 1, "Tue": 2, "Wed": 3, "Thu": 4, "Fri": 5, "Sat": 6}
+    start_day_index = days[start_day]
+    end_day_index = days[end_day]
+
+    # Convert start_time and end_time to hours and minutes
+    start_hour, start_minute = map(int, start_time.split(":"))
+    end_hour, end_minute = map(int, end_time.split(":"))
+
+    current_day = current_time.tm_wday
+    current_hour = current_time.tm_hour
+    current_minute = current_time.tm_min
+
+    if current_day == start_day_index:
+        if current_hour < start_hour or (current_hour == start_hour and current_minute < start_minute):
+            return True
+    elif current_day == end_day_index:
+        if current_hour > end_hour or (current_hour == end_hour and current_minute >= end_minute):
+            return True
+    elif current_day > start_day_index and current_day < end_day_index:
+        return True
+    
+    return False
 
 def preprocess_receive_checker(formatter, data, converted_data_map):
     try:
@@ -209,6 +232,12 @@ def receive_checker(process, rc_alerter_sock, model_filename, receive_checker_tr
         
         while process["Running"] == 1: 
             current_time = time.localtime()
+
+            is_sleep = rc_sleep(current_time, "Sat", "09:00", "Mon", "06:00")
+
+            if is_sleep:
+                time.sleep(1)
+
             curr_T_class = rc_get_T_class(target_time=current_time)
     
             one_minute_before_time = time.localtime(time.mktime(current_time) - 60)
