@@ -1,5 +1,7 @@
 from SDMS_ALERTER.config import *
 
+LOGINED_LIST = []
+
 async def handle_client_connection(reader, writer):
     try:
         client_address = writer.get_extra_info('peername')
@@ -15,6 +17,7 @@ async def handle_client_connection(reader, writer):
             writer.close()
             return
 
+        log(APP_NAME, MUST, f"Receive data from {client_address}: {data.decode()}")
         fix_data = parse_fix_message(SPLIT_CHAR, data.decode())
         login_id = fix_data[TAG_LOGIN_ID]
         login_pw = fix_data[TAG_LOGIN_PW]
@@ -22,6 +25,17 @@ async def handle_client_connection(reader, writer):
         login_success = False
         for login_info in LOGIN_LIST:
             if login_info["id"] == login_id and login_info["pw"] == login_pw:
+                if login_info in LOGINED_LIST:
+                    LOGIN_FAIL_DICT = {
+                    str(TAG_LOGIN_ID): login_id,
+                    str(TAG_LOGIN_PW): login_pw,
+                    str(TAG_LOGIN_AUTH): DATA_ALREDAY_USE
+                    }
+                    LOGIN_FAIL_MESSAGE = dict_to_fix(SPLIT_CHAR, LOGIN_FAIL_DICT)
+                    writer.write(LOGIN_FAIL_MESSAGE.encode())
+                    await writer.drain()
+                    return
+                
                 LOGIN_SUCCESS_DICT = {
                     str(TAG_LOGIN_ID): login_id,
                     str(TAG_LOGIN_PW): login_pw,
@@ -31,6 +45,7 @@ async def handle_client_connection(reader, writer):
                 writer.write(LOGIN_SUCCESS_MESSAGE.encode())
                 await writer.drain()
                 login_success = True
+                LOGINED_LIST.append(login_info)
                 break
 
         if not login_success:
@@ -54,8 +69,9 @@ async def handle_client_connection(reader, writer):
                 #once = False
                 await writer.drain()
                 alert_message = "1=001\0012=recieve_error\0013=20240402173636\0014=HANYANG\0015=SOOSINPORT\0016=111.111.111.111 >\0017=222.222.222.222\0018=4885\n"
+                log(APP_NAME, MUST, f"Sending data to {client_address}: {alert_message}")
                 writer.write(alert_message.encode())
-                time.sleep(1)
+                await asyncio.sleep(20)
                 
             await asyncio.sleep(0)  # 다른 task에 제어를 양보하여 비동기적으로 queue를 관찰
             if not DEVICE_ALERT_SERVER_QUEUE.empty():
@@ -63,6 +79,9 @@ async def handle_client_connection(reader, writer):
                 alert_message = await DEVICE_ALERT_SERVER_QUEUE.get()
                 writer.write(alert_message.encode())
 
+        if login_info in LOGINED_LIST:
+            LOGINED_LIST.remove(login_info)
+            
         log(APP_NAME, MUST, f"Closing connection with {client_address}")
         writer.close()
 
