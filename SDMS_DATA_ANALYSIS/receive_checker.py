@@ -28,6 +28,14 @@ def rc_get_T_class(target_time=None):
     except Exception as err:
         raise
 
+def rc_get_wday(target_time=None):
+    try:
+        if target_time is None:
+            target_time = time.localtime()
+        return target_time.tm_wday # 절대 수정하지 마세요.
+    except Exception as err:
+        raise
+
 def rc_get_update_date(target_time=None):
     try:
         if target_time is None:
@@ -63,6 +71,7 @@ def rc_get_label(formatter, data):
             "code": "",
             "type": "",
             "T_class": 0,
+            "T_wday": -1,
         }
         config, class_name, data_type = formatter.classify(data)
 
@@ -75,6 +84,7 @@ def rc_get_label(formatter, data):
 
         label["type"] = data_type
         label["T_class"] = rc_get_T_class()
+        label["T_wday"] = rc_get_wday()
 
         return label
     except Exception as err:
@@ -101,41 +111,25 @@ def rc_find_mapping(rc_data_index_map, converted_data, target, is_str2int=1):
     except Exception as err:
         raise
 
-def rc_encoding(converted_data_map, rc_data_index_map):
+def rc_encoding(rc_conv_data_map, rc_data_index_map):
     try:
         X_real = []
         X_train = []
-        scaler = StandardScaler()  # StandardScaler 객체 생성
         
-        for _, converted_data in converted_data_map.items():
+        for _, converted_data in rc_conv_data_map.items():
             exnm_encoded = rc_find_mapping(rc_data_index_map, converted_data["exnm"], "exnm", 1)
             code_encoded = rc_find_mapping(rc_data_index_map, converted_data["code"], "code", 1)
             type_encoded = rc_find_mapping(rc_data_index_map, converted_data["type"], "type", 1)
             
             if converted_data["check_count"] >= APP_INFO["receive_checker"]["classification"]:
-                X_real.append([exnm_encoded, code_encoded, type_encoded, converted_data["T_class"], converted_data["receive_count"]])
+                X_real.append([exnm_encoded, code_encoded, type_encoded, converted_data["T_class"], converted_data["T_wday"], converted_data["receive_count"]])
             else:
-                X_train.append([exnm_encoded, code_encoded, type_encoded, converted_data["T_class"], converted_data["receive_count"]])
+                X_train.append([exnm_encoded, code_encoded, type_encoded, converted_data["T_class"], converted_data["T_wday"], converted_data["receive_count"]])
         
         # 스케일링할 데이터 추출
         X_real = np.array(X_real)
         X_train = np.array(X_train)
         
-        # # X_train 데이터로 평균과 표준 편차를 계산하여 스케일링
-        # if len(X_train) > 0:
-        #     X_train_scaled = scaler.fit_transform(X_train[:, :-1])  # 마지막 열인 receive_count 제외
-        #     X_train_scaled = np.column_stack((X_train_scaled, X_train[:, -1]))  # receive_count 추가
-        # else:
-        #     X_train_scaled = []
-        
-        # # X_real 데이터를 이전에 계산한 평균과 표준 편차로 스케일링
-        # if len(X_real) > 0:
-        #     X_real_scaled = scaler.transform(X_real[:, :-1])  # 마지막 열인 receive_count 제외
-        #     X_real_scaled = np.column_stack((X_real_scaled, X_real[:, -1]))  # receive_count 추가
-        # else:
-        #     X_real_scaled = []
-
-        # return np.array(X_real_scaled), np.array(X_train_scaled), X_real, X_train
         return X_real, X_train
     except Exception as err:
         raise
@@ -154,17 +148,17 @@ def rc_save_data(data_filename, data):
     except Exception as err:
         raise
 
-def rc_update_converted_data(converted_data_map, label):
+def rc_update_converted_data(rc_conv_data_map, label):
     try:
         T_class = label["T_class"]
-        if T_class not in converted_data_map:
-            converted_data_map[T_class] = {}
+        if T_class not in rc_conv_data_map:
+            rc_conv_data_map[T_class] = {}
         
-        converted_data_map_T_class = converted_data_map[T_class]
+        rc_conv_data_map_T_class = rc_conv_data_map[T_class]
 
-        key = (label["exnm"], label["code"], label["type"], label["T_class"])
-        if key in converted_data_map_T_class:
-            converted_data = converted_data_map_T_class[key]
+        key = (label["exnm"], label["code"], label["type"], label["T_class"], label["T_wday"])
+        if key in rc_conv_data_map_T_class:
+            converted_data = rc_conv_data_map_T_class[key]
             curr_update_date = rc_get_update_date()
             converted_data["receive_count"] += 1
 
@@ -177,12 +171,12 @@ def rc_update_converted_data(converted_data_map, label):
         label["check_count"] = 1
         label["receive_count"] = 1
         label["update_date"] = rc_get_update_date()
-        converted_data_map_T_class[key] = label
+        rc_conv_data_map_T_class[key] = label
 
     except Exception as err:
         raise
 
-def rc_anomaly_process(rc_alerter_sock, rc_data_index_map, outlier_data):
+def rc_anomaly_process(alerter_sock, rc_data_index_map, outlier_data):
     try:
         # 0. 이상치가 어떤 데이터인지 exnm, code 등 전부 출력
         exnm = rc_find_mapping(rc_data_index_map, outlier_data[0], "exnm", 0)
@@ -210,55 +204,36 @@ def rc_anomaly_process(rc_alerter_sock, rc_data_index_map, outlier_data):
 
         # 2. Alert 전달
         json_alert_data = json.dumps(alert_data) + '\0'
-        rc_alerter_sock.client_feeder(json_alert_data.encode())
+        alerter_sock.client_feeder(json_alert_data.encode())
     except Exception as err:
         raise
 
-def rc_sleep(current_time, start_day, start_time, end_day, end_time):
-    days = {"Sun": 0, "Mon": 1, "Tue": 2, "Wed": 3, "Thu": 4, "Fri": 5, "Sat": 6}
-    start_day_index = days[start_day]
-    end_day_index = days[end_day]
 
-    # Convert start_time and end_time to hours and minutes
-    start_hour, start_minute = map(int, start_time.split(":"))
-    end_hour, end_minute = map(int, end_time.split(":"))
-
-    current_day = current_time.tm_wday
-    current_hour = current_time.tm_hour
-    current_minute = current_time.tm_min
-
-    if current_day == start_day_index:
-        if current_hour < start_hour or (current_hour == start_hour and current_minute < start_minute):
-            return True
-    elif current_day == end_day_index:
-        if current_hour > end_hour or (current_hour == end_hour and current_minute >= end_minute):
-            return True
-    elif current_day > start_day_index and current_day < end_day_index:
-        return True
-    
-    return False
-
-def preprocess_receive_checker(formatter, data, converted_data_map):
+def preprocess_receive_checker(formatter, data, rc_conv_data_attr):
     try:
         label = rc_get_label(formatter, data)
-        rc_update_converted_data(converted_data_map, label)
+        rc_update_converted_data(rc_conv_data_attr["data"], label)
     except Exception as err:
         raise
 
 
-def receive_checker(process, rc_alerter_sock, model_filename, receive_checker_train_data_filename, receive_checker_anomly_data_filename, converted_data_map, rc_data_index_map):
+def receive_checker(process, alerter_sock, formatter, rc_conv_data_attr, rc_data_index_attr):
     try:
         log(APP_NAME, MUST, f"receive_checker() start using {model_filename}..!")
         is_checked = False
         
+        model_filename = os.path.join(DATA_MODEL_DIR, f"RECV_CHK_MODEL_{formatter.id}.pk1")
+        receive_checker_train_data_filename = os.path.join(DATA_NUMP_DIR, f"receive_checker_train_combined_data_{formatter.id}.npy")
+        receive_checker_anomly_data_filename = os.path.join(DATA_NUMP_DIR, f"receive_checker_anomly_combined_data_{formatter.id}.npy")
+
+        rc_conv_data_filename = rc_conv_data_attr["filename"]
+        rc_conv_data_map = rc_conv_data_attr["data"]
+
+        rc_data_index_filename = rc_data_index_attr["filename"]
+        rc_data_index_map = rc_data_index_attr["data"]
+
         while process["Running"] == 1: 
             current_time = time.localtime()
-
-            is_sleep = rc_sleep(current_time, "Sat", "09:00", "Mon", "06:00")
-
-            if is_sleep:
-                time.sleep(1)
-
             curr_T_class = rc_get_T_class(target_time=current_time)
     
             one_minute_before_time = time.localtime(time.mktime(current_time) - 60)
@@ -268,15 +243,15 @@ def receive_checker(process, rc_alerter_sock, model_filename, receive_checker_tr
             next_T_class = rc_get_T_class(target_time=two_minute_after_time)
 
             # Receiving Count of Next T Class initializing
-            if next_T_class in converted_data_map:
-                converted_data_map[converted_data_map]["receive_count"] = 0
+            if next_T_class in rc_conv_data_map:
+                rc_conv_data_map[next_T_class]["receive_count"] = 0
     
             if before_T_class != curr_T_class:
                 if not is_checked:
-                    if not converted_data_map:
+                    if not rc_conv_data_map:
                         continue
                         
-                    X_real, X_train = rc_encoding(converted_data_map.get(before_T_class, {}), rc_data_index_map)
+                    X_real, X_train = rc_encoding(rc_conv_data_map.get(before_T_class, {}), rc_data_index_map)
                     
                     # Load the receive checker model
                     if os.path.exists(model_filename):
@@ -293,7 +268,7 @@ def receive_checker(process, rc_alerter_sock, model_filename, receive_checker_tr
         
                         for ii, y in enumerate(Y_real):
                             if y == -1:
-                                rc_anomaly_process(rc_alerter_sock, rc_data_index_map, X_real[ii])
+                                rc_anomaly_process(alerter_sock, rc_data_index_map, X_real[ii])
 
                         # 이상치 데이터 저장
                         anomalous_indices = np.where(Y_real == -1)[0]
@@ -310,6 +285,9 @@ def receive_checker(process, rc_alerter_sock, model_filename, receive_checker_tr
                     # Save the updated model
                     joblib.dump(clf, model_filename)
                     is_checked = True
+
+                    dump_data_to_file(rc_conv_data_map, rc_conv_data_filename)
+                    dump_data_to_file(rc_data_index_map, rc_data_index_filename)
                 else:
                     time.sleep(1)
             else:
@@ -319,4 +297,6 @@ def receive_checker(process, rc_alerter_sock, model_filename, receive_checker_tr
     except Exception as err:
         traceback_error = traceback.format_exc()
         log(APP_NAME, ERROR, traceback_error)
+        dump_data_to_file(rc_conv_data_map, rc_conv_data_filename)
+        dump_data_to_file(rc_data_index_map, rc_data_index_filename)
         sys.exit()

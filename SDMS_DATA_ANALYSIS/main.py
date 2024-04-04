@@ -5,11 +5,8 @@ from SDMS_DATA_ANALYSIS.receive_checker import (
 
 DA_SOCKETS = []
 ALERTER_SOCKETS = []
-CONVERTED_DATA_MAP_ALL = {}
-RC_DATA_INDEX_MAP = {}
-
-converted_data_map_all_filename = os.path.join(DATA_DICT_DIR, "CONVERTED_DATA_MAP_ALL.pickle")
-rc_data_index_map_all_filename = os.path.join(DATA_DICT_DIR, "RC_DATA_INDEX_MAP.pickle")
+RC_CONV_DATA_LIST = []
+RC_DATA_INDEX_MAP_LIST = []
 
 def socket_close(socklist, sock):
     if sock in socklist:
@@ -24,76 +21,40 @@ def all_socket_close():
         socket_close(ALERTER_SOCKETS, sock)
 
 def exit_handler(signal, frame):
-    global CONVERTED_DATA_MAP_ALL
-    global RC_DATA_INDEX_MAP
-    
     log(APP_NAME, MUST, "Received termination signal. Closing all of the socket.")
     all_socket_close()
-    dump_data_to_file(CONVERTED_DATA_MAP_ALL, converted_data_map_all_filename)
-    dump_data_to_file(RC_DATA_INDEX_MAP, rc_data_index_map_all_filename)
+
+    for rc_conv_data_attr in RC_CONV_DATA_LIST:
+        dump_data_to_file(rc_conv_data_attr["data"], rc_conv_data_attr["filename"])
+    
+    for rc_data_index_attr in RC_DATA_INDEX_MAP_LIST:
+        dump_data_to_file(rc_data_index_attr["data"], rc_data_index_attr["filename"])
+
     exit(1)
 
 
-def receive_checker_start(alerter_sock, exch_config, recv_config, process):
-    formatter = Format(APP_NAME, exch_config, recv_config)
-
-    if formatter.id not in CONVERTED_DATA_MAP_ALL:
-        CONVERTED_DATA_MAP_ALL[formatter.id] = {}
-        
-    if formatter.id not in RC_DATA_INDEX_MAP:
-        RC_DATA_INDEX_MAP[formatter.id] = {}
-
-    model_filename = os.path.join(DATA_MODEL_DIR, f"RECV_CHK_MODEL_{formatter.id}.pk1")
-    receive_checker_train_data_filename = os.path.join(DATA_NUMP_DIR, f"receive_checker_train_combined_data_{formatter.id}.npy")
-    receive_checker_anomly_data_filename = os.path.join(DATA_NUMP_DIR, f"receive_checker_anomly_combined_data_{formatter.id}.npy")
-        
+def receive_checker_start(process, alerter_sock, formatter, rc_conv_data_attr, rc_data_index_attr):        
     # Create thread for receive_checker
-    receive_checker_thread = threading.Thread(target=receive_checker, args=(process, alerter_sock, model_filename, 
-                                                                                 receive_checker_train_data_filename, 
-                                                                                 receive_checker_anomly_data_filename, 
-                                                                                 CONVERTED_DATA_MAP_ALL[formatter.id], 
-                                                                                 RC_DATA_INDEX_MAP[formatter.id]))
+    receive_checker_thread = threading.Thread(target=receive_checker, args=(process, alerter_sock, formatter, rc_conv_data_attr, rc_data_index_attr))
+
     # Start the thread
     receive_checker_thread.start()
-    
 
-def da_checker_start(exch_config, recv_config, process):
+
+def da_start(exch_config, recv_config, process):
     try:
-        global CONVERTED_DATA_MAP_ALL
-        global RC_DATA_INDEX_MAP
-
+        da_socket = UnixDomainSocket(
+            APP_NAME, 
+            exch_config, 
+            recv_config, 
+            UNIX_DA_FLAG)
+        
         alerter_sock = UnixDomainSocket(
             APP_NAME,
             exch_config,
             recv_config,
             UNIX_ALERTER_FLAG
         )
-
-        if alerter_sock is None:
-            log(APP_NAME, ERROR, 
-                f"ID[{exch_config['uuid']}:{recv_config['uuid']}] Failed to create alert socket instance")
-            raise Exception
-
-        ALERTER_SOCKETS.append(alerter_sock)
-
-        #### THEREAD ####
-        receive_checker_start(alerter_sock, exch_config, recv_config, process)
-            
-    except Exception as err:
-        traceback_error = traceback.format_exc()
-        log(APP_NAME, ERROR, traceback_error)
-        socket_close(ALERTER_SOCKETS, alerter_sock)
-        sys.exit()
-
-def da_start(exch_config, recv_config, process):
-    try:
-        global CONVERTED_DATA_MAP_ALL
-
-        da_socket = UnixDomainSocket(
-            APP_NAME, 
-            exch_config, 
-            recv_config, 
-            UNIX_DA_FLAG)
     
         formatter = Format(APP_NAME, exch_config, recv_config)
 
@@ -101,11 +62,36 @@ def da_start(exch_config, recv_config, process):
             log(APP_NAME, ERROR, 
                 f"ID[{exch_config['uuid']}:{recv_config['uuid']}] Failed to create client_socket instance")
             raise Exception
+    
+        if alerter_sock is None:
+            log(APP_NAME, ERROR, 
+                f"ID[{exch_config['uuid']}:{recv_config['uuid']}] Failed to create alert socket instance")
+            raise Exception
 
         DA_SOCKETS.append(da_socket)
-        
-        if formatter.id not in CONVERTED_DATA_MAP_ALL:
-            CONVERTED_DATA_MAP_ALL[formatter.id] = {}
+        ALERTER_SOCKETS.append(alerter_sock)
+
+        rc_conv_data_filename = os.path.join(DATA_DICT_DIR, f"RC_CONV_DATA_MAP_{formatter.id}.pickle")
+        rc_conv_data_map = load_data_from_file(rc_conv_data_filename) or {}
+        rc_conv_data_attr = {
+            "filename" : rc_conv_data_filename,
+            "data": rc_conv_data_map
+        }
+
+        RC_CONV_DATA_LIST.append(rc_conv_data_attr)
+
+        rc_data_index_filename = os.path.join(DATA_DICT_DIR, f"RC_DATA_INDEX_MAP_{formatter.id}.pickle")
+        rc_data_index_map = load_data_from_file(rc_data_index_filename) or {}
+        rc_data_index_attr = {
+            "filename" : rc_data_index_filename,
+            "data": rc_data_index_map
+        }
+
+        RC_DATA_INDEX_MAP_LIST.append(rc_data_index_attr)
+
+        #### THEREAD ####
+        receive_checker_start(process, alerter_sock, formatter, rc_conv_data_attr, rc_data_index_attr)
+        #################
         
         while process["Running"] == 1:
             data = da_socket.client_receiver()
@@ -114,43 +100,27 @@ def da_start(exch_config, recv_config, process):
                 time.sleep(0.001)
                 continue
 
-            preprocess_receive_checker(formatter, data, CONVERTED_DATA_MAP_ALL[formatter.id])
-
+            preprocess_receive_checker(formatter, data, rc_conv_data_attr)
         raise Exception
     except Exception as err:
         traceback_error = traceback.format_exc()
         log(APP_NAME, ERROR, traceback_error)
         socket_close(DA_SOCKETS, da_socket)
+        dump_data_to_file(rc_conv_data_map, rc_conv_data_filename)
+        dump_data_to_file(rc_data_index_map, rc_data_index_filename)
         sys.exit()
 
-def save_data_routine():
-    while(True):
-        dump_data_to_file(CONVERTED_DATA_MAP_ALL, converted_data_map_all_filename)
-        dump_data_to_file(RC_DATA_INDEX_MAP, rc_data_index_map_all_filename)
-        time.sleep(30)
-    sys.exit()
 
 def main():
-    global CONVERTED_DATA_MAP_ALL
-    global RC_DATA_INDEX_MAP
-
     signal.signal(signal.SIGINT, exit_handler)
     signal.signal(signal.SIGTERM, exit_handler)
 
     try:
-        CONVERTED_DATA_MAP_ALL = load_data_from_file(converted_data_map_all_filename) or {}
-        RC_DATA_INDEX_MAP = load_data_from_file(rc_data_index_map_all_filename) or {}
-
-        save_thread = threading.Thread(target=save_data_routine, daemon=True)
-        save_thread.start()
-
-        check_exchange_process(APP_NAME, [da_start, da_checker_start])
+        check_exchange_process(APP_NAME, [da_start])
 
     except Exception as err:
         traceback_error = traceback.format_exc()
         log(APP_NAME, ERROR, traceback_error)
-        dump_data_to_file(CONVERTED_DATA_MAP_ALL, converted_data_map_all_filename)
-        dump_data_to_file(RC_DATA_INDEX_MAP, rc_data_index_map_all_filename)
         all_socket_close()
 
 if __name__ == "__main__":
