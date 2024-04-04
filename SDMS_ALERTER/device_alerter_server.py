@@ -7,9 +7,6 @@ async def handle_client_connection(reader, writer):
         client_address = writer.get_extra_info('peername')
         log(APP_NAME, MUST, f"Accepted connection from {client_address}")
 
-        if reader is None or writer is None:
-            reader, writer = await asyncio.open_connection(sock=writer)
-
         data = await asyncio.wait_for(reader.read(1024 * 1024 * 16), timeout=30)
 
         if not data:
@@ -34,6 +31,8 @@ async def handle_client_connection(reader, writer):
                     LOGIN_FAIL_MESSAGE = dict_to_fix(SPLIT_CHAR, LOGIN_FAIL_DICT)
                     writer.write(LOGIN_FAIL_MESSAGE.encode())
                     await writer.drain()
+                    writer.close()
+                    log(APP_NAME, MUST, f"Already login with {client_address} using {login_id}:{login_pw}")
                     return
                 
                 LOGIN_SUCCESS_DICT = {
@@ -46,6 +45,7 @@ async def handle_client_connection(reader, writer):
                 await writer.drain()
                 login_success = True
                 LOGINED_LIST.append(login_info)
+                log(APP_NAME, MUST, f"Success to login with {client_address} using {login_id}/{login_pw}")
                 break
 
         if not login_success:
@@ -57,33 +57,51 @@ async def handle_client_connection(reader, writer):
             LOGIN_FAIL_MESSAGE = dict_to_fix(SPLIT_CHAR, LOGIN_FAIL_DICT)
             writer.write(LOGIN_FAIL_MESSAGE.encode())
             await writer.drain()
+            writer.close()
+            log(APP_NAME, MUST, f"Failed to login with {client_address} using {login_id}/{login_pw}")
             return  # 로그인 실패 시 연결 종료
             
         once = True
         
         # 로그인 성공한 클라이언트에게만 메시지 전송 처리
         while not writer.transport.is_closing():
-
+            
             # THIS IS TEST
             if once:
                 #once = False
                 await writer.drain()
                 alert_message = "1=001\0012=recieve_error\0013=20240402173636\0014=HANYANG\0015=SOOSINPORT\0016=111.111.111.111 >\0017=222.222.222.222\0018=4885\n"
-                log(APP_NAME, MUST, f"Sending data to {client_address}: {alert_message}")
-                writer.write(alert_message.encode())
-                await asyncio.sleep(20)
+                
+                try:
+                    writer.write(alert_message.encode())
+                    log(APP_NAME, MUST, f"Data sent to {client_address}: {alert_message}")
+                    await asyncio.sleep(10)
+                except ConnectionError:
+                    log(APP_NAME, ERROR, f"Connection to {client_address} closed unexpectedly")
+                    break
                 
             await asyncio.sleep(0)  # 다른 task에 제어를 양보하여 비동기적으로 queue를 관찰
+            
             if not DEVICE_ALERT_SERVER_QUEUE.empty():
-                await writer.drain()
-                alert_message = await DEVICE_ALERT_SERVER_QUEUE.get()
-                writer.write(alert_message.encode())
+                try:
+                    await writer.drain()
+                    alert_message = await DEVICE_ALERT_SERVER_QUEUE.get()
+                    writer.write(alert_message.encode())
+                except ConnectionError:
+                    log(APP_NAME, ERROR, f"Connection to {client_address} closed unexpectedly")
+                    break
 
         if login_info in LOGINED_LIST:
             LOGINED_LIST.remove(login_info)
             
         log(APP_NAME, MUST, f"Closing connection with {client_address}")
-        writer.close()
+
+        try:
+            await writer.wait_closed()
+        except ConnectionResetError:
+            return
+        except OSError:
+            return
 
     except asyncio.TimeoutError:
         log(APP_NAME, MUST, f"Closing connection with {client_address} due to login timeout")
