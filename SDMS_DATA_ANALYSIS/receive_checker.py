@@ -90,36 +90,31 @@ def rc_get_label(formatter, data):
     except Exception as err:
         raise
 
-def rc_find_mapping(rc_data_index_map, converted_data, target, is_str2int=1):
-    try:
-        # 문자열을 정수로 매핑하는 딕셔너리
-        if is_str2int:
-            if target not in rc_data_index_map:
-                rc_data_index_map[target] = {}
-            
-            if converted_data not in rc_data_index_map[target]:
-                # 새로운 매핑을 생성하여 반환
-                new_mapping = len(rc_data_index_map[target]) + 1
-                rc_data_index_map[target][converted_data] = new_mapping
-                return new_mapping
-            else:
-                # 이미 존재하는 매핑을 반환
-                return rc_data_index_map[target][converted_data]
-        else:
-            # 정수를 문자열로 역매핑
-            return [key for key, value in rc_data_index_map[target].items() if value == converted_data][0]
-    except Exception as err:
-        raise
+def rc_int2str(number):
+    string = ""
 
-def rc_encoding(rc_conv_data_map, rc_data_index_map):
+    while number > 0:
+        remainder = number % 100
+        ch = chr(remainder)
+        string = ch + string
+        number //= 100   
+    return string
+
+def rc_str2int(string):
+    value = 0
+    for index, ch in enumerate(string.upper()):
+        value += ord(ch) * (10 ** ((len(string) - index - 1) * 2))
+    return value
+
+def rc_encoding(rc_conv_data_map):
     try:
         X_real = []
         X_train = []
         
         for _, converted_data in rc_conv_data_map.items():
-            exnm_encoded = rc_find_mapping(rc_data_index_map, converted_data["exnm"], "exnm", 1)
-            code_encoded = rc_find_mapping(rc_data_index_map, converted_data["code"], "code", 1)
-            type_encoded = rc_find_mapping(rc_data_index_map, converted_data["type"], "type", 1)
+            exnm_encoded = rc_str2int(converted_data["exnm"])
+            code_encoded = rc_str2int(converted_data["code"].strip())
+            type_encoded = rc_str2int(converted_data["type"])
             
             if converted_data["check_count"] >= APP_INFO["receive_checker"]["classification"]:
                 X_real.append([exnm_encoded, code_encoded, type_encoded, converted_data["T_class"], converted_data["T_wday"], converted_data["receive_count"]])
@@ -176,12 +171,12 @@ def rc_update_converted_data(rc_conv_data_map, label):
     except Exception as err:
         raise
 
-def rc_anomaly_process(alerter_sock, rc_data_index_map, outlier_data):
+def rc_anomaly_process(alerter_sock, outlier_data):
     try:
         # 0. 이상치가 어떤 데이터인지 exnm, code 등 전부 출력
-        exnm = rc_find_mapping(rc_data_index_map, outlier_data[0], "exnm", 0)
-        code = rc_find_mapping(rc_data_index_map, outlier_data[1], "code", 0).strip()
-        type = rc_find_mapping(rc_data_index_map, outlier_data[2], "type", 0)
+        exnm = rc_int2str(outlier_data[0])
+        code = rc_int2str(outlier_data[1])
+        type = rc_int2str(outlier_data[2])
         T_class = outlier_data[3]
         receive_count = outlier_data[4]
         error_datetime = rc_get_update_datetime()
@@ -217,9 +212,9 @@ def preprocess_receive_checker(formatter, data, rc_conv_data_attr):
         raise
 
 
-def receive_checker(process, alerter_sock, formatter, rc_conv_data_attr, rc_data_index_attr):
+def receive_checker(process, alerter_sock, formatter, rc_conv_data_attr):
     try:
-        log(APP_NAME, MUST, f"receive_checker() start using {model_filename}..!")
+        log(APP_NAME, MUST, f"receive_checker() start for {formatter.id}..!")
         is_checked = False
         
         model_filename = os.path.join(DATA_MODEL_DIR, f"RECV_CHK_MODEL_{formatter.id}.pk1")
@@ -229,8 +224,6 @@ def receive_checker(process, alerter_sock, formatter, rc_conv_data_attr, rc_data
         rc_conv_data_filename = rc_conv_data_attr["filename"]
         rc_conv_data_map = rc_conv_data_attr["data"]
 
-        rc_data_index_filename = rc_data_index_attr["filename"]
-        rc_data_index_map = rc_data_index_attr["data"]
 
         while process["Running"] == 1: 
             current_time = time.localtime()
@@ -251,7 +244,7 @@ def receive_checker(process, alerter_sock, formatter, rc_conv_data_attr, rc_data
                     if not rc_conv_data_map:
                         continue
                         
-                    X_real, X_train = rc_encoding(rc_conv_data_map.get(before_T_class, {}), rc_data_index_map)
+                    X_real, X_train = rc_encoding(rc_conv_data_map.get(before_T_class, {}))
                     
                     # Load the receive checker model
                     if os.path.exists(model_filename):
@@ -268,7 +261,7 @@ def receive_checker(process, alerter_sock, formatter, rc_conv_data_attr, rc_data
         
                         for ii, y in enumerate(Y_real):
                             if y == -1:
-                                rc_anomaly_process(alerter_sock, rc_data_index_map, X_real[ii])
+                                rc_anomaly_process(alerter_sock, X_real[ii])
 
                         # 이상치 데이터 저장
                         anomalous_indices = np.where(Y_real == -1)[0]
@@ -287,7 +280,6 @@ def receive_checker(process, alerter_sock, formatter, rc_conv_data_attr, rc_data
                     is_checked = True
 
                     dump_data_to_file(rc_conv_data_map, rc_conv_data_filename)
-                    dump_data_to_file(rc_data_index_map, rc_data_index_filename)
                 else:
                     time.sleep(1)
             else:
@@ -298,5 +290,4 @@ def receive_checker(process, alerter_sock, formatter, rc_conv_data_attr, rc_data
         traceback_error = traceback.format_exc()
         log(APP_NAME, ERROR, traceback_error)
         dump_data_to_file(rc_conv_data_map, rc_conv_data_filename)
-        dump_data_to_file(rc_data_index_map, rc_data_index_filename)
         sys.exit()

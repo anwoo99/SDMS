@@ -6,7 +6,6 @@ from SDMS_DATA_ANALYSIS.receive_checker import (
 DA_SOCKETS = []
 ALERTER_SOCKETS = []
 RC_CONV_DATA_LIST = []
-RC_DATA_INDEX_MAP_LIST = []
 
 def socket_close(socklist, sock):
     if sock in socklist:
@@ -26,16 +25,13 @@ def exit_handler(signal, frame):
 
     for rc_conv_data_attr in RC_CONV_DATA_LIST:
         dump_data_to_file(rc_conv_data_attr["data"], rc_conv_data_attr["filename"])
-    
-    for rc_data_index_attr in RC_DATA_INDEX_MAP_LIST:
-        dump_data_to_file(rc_data_index_attr["data"], rc_data_index_attr["filename"])
 
     exit(1)
 
 
-def receive_checker_start(process, alerter_sock, formatter, rc_conv_data_attr, rc_data_index_attr):        
+def receive_checker_start(process, alerter_sock, formatter, rc_conv_data_attr):        
     # Create thread for receive_checker
-    receive_checker_thread = threading.Thread(target=receive_checker, args=(process, alerter_sock, formatter, rc_conv_data_attr, rc_data_index_attr))
+    receive_checker_thread = threading.Thread(target=receive_checker, args=(process, alerter_sock, formatter, rc_conv_data_attr))
 
     # Start the thread
     receive_checker_thread.start()
@@ -80,17 +76,8 @@ def da_start(exch_config, recv_config, process):
 
         RC_CONV_DATA_LIST.append(rc_conv_data_attr)
 
-        rc_data_index_filename = os.path.join(DATA_DICT_DIR, f"RC_DATA_INDEX_MAP_{formatter.id}.pickle")
-        rc_data_index_map = load_data_from_file(rc_data_index_filename) or {}
-        rc_data_index_attr = {
-            "filename" : rc_data_index_filename,
-            "data": rc_data_index_map
-        }
-
-        RC_DATA_INDEX_MAP_LIST.append(rc_data_index_attr)
-
         #### THEREAD ####
-        receive_checker_start(process, alerter_sock, formatter, rc_conv_data_attr, rc_data_index_attr)
+        receive_checker_start(process, alerter_sock, formatter, rc_conv_data_attr)
         #################
         
         while process["Running"] == 1:
@@ -107,7 +94,6 @@ def da_start(exch_config, recv_config, process):
         log(APP_NAME, ERROR, traceback_error)
         socket_close(DA_SOCKETS, da_socket)
         dump_data_to_file(rc_conv_data_map, rc_conv_data_filename)
-        dump_data_to_file(rc_data_index_map, rc_data_index_filename)
         sys.exit()
 
 
