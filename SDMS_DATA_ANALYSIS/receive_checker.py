@@ -102,36 +102,52 @@ def rc_get_label(formatter, data):
 
 
 def rc_int2str(number):
-    string = ""
-
-    while number > 0:
-        remainder = number % 100
-        ch = chr(remainder)
-        string = ch + string
-        number //= 100
-    return string
+    try:
+        string = ""
+    
+        while number > 0:
+            remainder = number % 100
+            ch = chr(remainder)
+            string = ch + string
+            number //= 100
+        return string
+    except:
+        return None
 
 
 def rc_str2int(string):
-    value = 0
-    for index, ch in enumerate(string.upper()):
-        value += ord(ch) * (10 ** ((len(string) - index - 1) * 2))
-    return value
-
+    try:
+        if len(string) <= 0:
+            return None
+        value = 0
+        for index, ch in enumerate(string.upper()):
+            value += ord(ch) * (10 ** ((len(string) - index - 1) * 2))
+        return value
+    except:
+        return None
 
 def rc_encoding(rc_conv_data_map):
     try:
         X_real = []
         X_train = []
 
-        for _, converted_data in rc_conv_data_map.items():
+        for key, converted_data in list(rc_conv_data_map.items()):
+            if not isinstance(converted_data, dict):
+                del rc_conv_data_map[key]
+                continue
+
             exnm_encoded = rc_str2int(converted_data["exnm"])
+
             if converted_data["code"] is None:
                 code_encoded = 0
             else:
                 code_encoded = rc_str2int(converted_data["code"].strip())
+                
             type_encoded = rc_str2int(converted_data["type"])
 
+            if exnm_encoded is None or code_encoded is None or type_encoded is None:
+                continue
+            
             if converted_data["check_count"] >= APP_INFO["receive_checker"]["classification"]:
                 X_real.append([exnm_encoded, code_encoded, type_encoded, converted_data["T_class"],
                               converted_data["T_wday"], converted_data["receive_count"]])
