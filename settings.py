@@ -52,7 +52,18 @@ INSTALLED_APPS = {
         "Running": True,
         "LOG_LEVEL": PROGRESS,
         "receive_checker": {
-            "classification": 5
+            "classification": 5,
+            "isolation_forest": {
+                "n_estimators": 100,
+                "max_samples" : "auto",
+                "contamination": 0.155,
+                "max_features": 6,
+                "bootstrap": False,
+                "n_jobs": -1,
+                "random_state": 42,
+                "verbose": 0,
+                "warm_start": False
+            }
         }
     },
     'SDMS_HTS': {
