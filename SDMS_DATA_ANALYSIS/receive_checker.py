@@ -226,10 +226,17 @@ def rc_anomaly_process(alerter_sock, outlier_data):
         raise
 
 
-def preprocess_receive_checker(formatter, data, rc_conv_data_attr):
+def preprocess_receive_checker(formatter, data, rc_conv_data_attr, thread):
     try:
         label = rc_get_label(formatter, data)
         rc_update_converted_data(rc_conv_data_attr["data"], label)
+
+        try:
+            if not thread.is_alive():
+                thread.start()
+        except Exception: 
+            pass
+
     except Exception as err:
         raise
 

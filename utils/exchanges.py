@@ -71,10 +71,10 @@ def run_exchange_process(app_name, exch_config, recv_config, function):
 
         if process and "Thread" in process and process["Thread"] and not process["Thread"].is_alive():
             try:
+                log(app_name, MUST, f"ID[{exch_config['uuid']}:{recv_config['uuid']}] Start to run '{function.__name__}'...")
                 process["Thread"].start()
-                log(app_name, MUST, f"ID[{exch_config['uuid']}:{recv_config['uuid']}] Start to run '{function.__name__}'")
             except Exception:
-                pass
+                log(app_name, MUST, f"ID[{exch_config['uuid']}:{recv_config['uuid']}] Fail to run '{function.__name__}'.")
 
         if process is None or process["Running"] == 0:
             process = {

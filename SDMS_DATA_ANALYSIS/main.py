@@ -35,6 +35,7 @@ def receive_checker_start(process, alerter_sock, formatter, rc_conv_data_attr):
 
     # Start the thread
     receive_checker_thread.start()
+    return receive_checker_thread
 
 
 def da_start(exch_config, recv_config, process):
@@ -77,7 +78,7 @@ def da_start(exch_config, recv_config, process):
         RC_CONV_DATA_LIST.append(rc_conv_data_attr)
 
         #### THEREAD ####
-        receive_checker_start(process, alerter_sock, formatter, rc_conv_data_attr)
+        receive_checker_thread = receive_checker_start(process, alerter_sock, formatter, rc_conv_data_attr)
         #################
         
         while process["Running"] == 1:
@@ -87,7 +88,7 @@ def da_start(exch_config, recv_config, process):
                 time.sleep(0.001)
                 continue
 
-            preprocess_receive_checker(formatter, data, rc_conv_data_attr)
+            preprocess_receive_checker(formatter, data, rc_conv_data_attr, receive_checker_thread)
         raise Exception
     except Exception as err:
         traceback_error = traceback.format_exc()
