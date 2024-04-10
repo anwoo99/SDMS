@@ -131,7 +131,7 @@ def rc_encoding(rc_conv_data_map):
         X_real = []
         X_train = []
 
-        for key, converted_data in list(rc_conv_data_map.items()):
+        for key, converted_data in list(rc_conv_data_map.copy().items()):
             if not isinstance(converted_data, dict):
                 del rc_conv_data_map[key]
                 continue
