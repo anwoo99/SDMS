@@ -350,7 +350,7 @@ def receive_checker(process, alerter_sock, formatter, rc_conv_data_attr):
                     joblib.dump(clf, model_filename)
                     is_checked = True
 
-                    dump_data_to_file(rc_conv_data_map, rc_conv_data_filename)
+                    dump_data_to_file(rc_conv_data_map.copy(), rc_conv_data_filename)
                 else:
                     time.sleep(1)
             else:
@@ -360,5 +360,5 @@ def receive_checker(process, alerter_sock, formatter, rc_conv_data_attr):
     except Exception as err:
         traceback_error = traceback.format_exc()
         log(APP_NAME, ERROR, traceback_error)
-        dump_data_to_file(rc_conv_data_map, rc_conv_data_filename)
+        dump_data_to_file(rc_conv_data_map.copy(), rc_conv_data_filename)
         sys.exit()
