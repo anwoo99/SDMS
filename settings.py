@@ -56,7 +56,7 @@ INSTALLED_APPS = {
             "isolation_forest": {
                 "n_estimators": 100,
                 "max_samples" : "auto",
-                "contamination": 0.44,
+                "contamination": 0.12,
                 "max_features": 6,
                 "bootstrap": False,
                 "n_jobs": None,

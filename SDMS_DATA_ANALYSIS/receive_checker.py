@@ -230,7 +230,8 @@ def rc_anomaly_process(alerter_sock, outlier_data):
             "error_time": error_datetime,
             "exnm": exnm,
             "code": code,
-            "type": type,
+            "rcount": int(receive_count),
+            "type": type
         }
 
         # 1. Outlier Data에 대하여 진짜 이상치가 맞는지 추가 검증 로직 추가
@@ -338,10 +339,13 @@ def receive_checker(process, alerter_sock, formatter, rc_conv_data_attr):
                         # X_real 중 이상치가 아닌 데이터는 학습
                         non_anomalous_indices = np.where(
                             Y_real != -1)[0]  # 이상치로 판별되지 않은 데이터 인덱스
+                        
                         # 이상치로 판별되지 않은 데이터만 선택
-                        X_real_non_anomalous = X_real[non_anomalous_indices]
-                        rc_save_data(
-                            receive_checker_train_data_filename, X_real_non_anomalous)
+                        if non_anomalous_indices.size > 0:
+                            X_real_non_anomalous = X_real[non_anomalous_indices]
+                            rc_save_data(
+                                receive_checker_train_data_filename, X_real_non_anomalous
+                            )
 
                         # 모델 재학습
                         clf.fit(X_real_non_anomalous)
@@ -350,7 +354,11 @@ def receive_checker(process, alerter_sock, formatter, rc_conv_data_attr):
                     joblib.dump(clf, model_filename)
                     is_checked = True
 
-                    dump_data_to_file(rc_conv_data_map.copy(), rc_conv_data_filename)
+                    try:
+                        dump_data_to_file(rc_conv_data_map.copy(), rc_conv_data_filename)
+                    except Exception as err:
+                        log(APP_NAME, ERROR, f"Failed to dump {rc_conv_data_filename} for {err}")
+                        continue
                 else:
                     time.sleep(1)
             else:

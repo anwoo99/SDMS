@@ -57,21 +57,29 @@ def alerter_start(exch_config, recv_config, process):
                 time.sleep(0.001)
                 continue
 
-            data = json.loads(json_data.rstrip('\0'))
+            try:
+                # 여러 개의 JSON 데이터가 연속해서 전송될 수 있으므로, 이를 리스트로 변환
+                json_data_list = json_data.strip('\0').split('\0')
+                for json_str in json_data_list:
+                    data = json.loads(json_str)
+                    
+                    if "error_code" not in data:
+                        continue
+
+                    # 1. ERROR LOG 기록
+                    errlog(data)
+
+                    # 2. 외부 DEVICE 전달
+                    device_processing(exch_config, recv_config, data)
+
+                    # 3. NaverWorks 메신저 송신
+
+                    # 4. ERROR DB 저장
             
-            if "error_code" not in data:
+            except json.decoder.JSONDecodeError as e:
+                log(APP_NAME, MUST, f"JSONDecodeError occurred with data: {json_data}")
                 continue
-
-            # 1. ERROR LOG 기록
-            errlog(data)
-
-            # 2. 외부 DEVICE 전달
-            device_processing(exch_config, recv_config, data)
-
-            # 3. NaverWorks 메신저 송신
-
-            # 4. ERROR DB 저장
-
+            
         raise Exception
     except Exception as err:
         traceback_error = traceback.format_exc()

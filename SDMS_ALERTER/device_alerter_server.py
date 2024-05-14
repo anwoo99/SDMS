@@ -84,8 +84,8 @@ async def handle_client_connection(reader, writer):
             
             if not DEVICE_ALERT_SERVER_QUEUE.empty():
                 try:
+                    alert_message = DEVICE_ALERT_SERVER_QUEUE.get()
                     await writer.drain()
-                    alert_message = await DEVICE_ALERT_SERVER_QUEUE.get()
                     writer.write(alert_message.encode())
                 except ConnectionError:
                     log(APP_NAME, ERROR, f"Connection to {client_address} closed unexpectedly")
